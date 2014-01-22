@@ -27,7 +27,7 @@ class grid3d:
 #		ky0 = np.pi/5
 #		kz0 = np.pi/5
 		
-		kx0=1.1849/m
+		kx0=1.1849/m		#k_max do espectro do CAMB
 		ky0=1.1849/n
 		kz0=1.1849/l
 		
