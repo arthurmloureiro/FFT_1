@@ -23,10 +23,14 @@ class grid3d:
 		self.size_y = n
 		self.size_z = l
 
-		kx0 = np.pi/5					#NENHUM MOTIVO PARA ESTE VALOR
-		ky0 = np.pi/5
-		kz0 = np.pi/5
-
+#		kx0 = np.pi/5					#NENHUM MOTIVO PARA ESTE VALOR
+#		ky0 = np.pi/5
+#		kz0 = np.pi/5
+		
+		kx0=1.1849/m
+		ky0=1.1849/n
+		kz0=1.1849/l
+		
 		prime_x=np.arange(1,(m+1)/2,1)*kx0		
 		invert_prime_x = -prime_x[::-1]			
 		prime_x = np.insert(prime_x, 0,0)		
@@ -44,7 +48,7 @@ class grid3d:
 		prime_z = np.insert(prime_z, 0,0)		#adiciona o valor zero na posição 0
 		self.k_z = np.append(prime_z,invert_prime_z)	#junta todos os vetores
 		
-		self.matrix = [[[ np.sqrt(self.k_x[i]**2 + self.k_y[j]**2 +self.k_z[k]**2) for i in range(len(self.k_x))] for j in range(len(self.k_y))] for k in range(len(self.k_z))]
+		self.matrix = np.asarray([[[ np.sqrt(self.k_x[i]**2 + self.k_y[j]**2 +self.k_z[k]**2) for i in range(len(self.k_x))] for j in range(len(self.k_y))] for k in range(len(self.k_z))])
 		pl.figure("Matriz de k")
 		self.plot = pl.imshow(self.matrix[3], cmap=cm.jet)
 		#pl.show()
