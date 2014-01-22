@@ -1,0 +1,35 @@
+
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
+import numpy as np
+import random
+''' 
+count = []
+for i in range(1, 4):
+     for j in range(3, 6):
+         for k in range(15,19):
+             count.append((i, j, k, random.random()))
+data = np.array(count)
+print data
+fig = plt.figure()
+ax = fig.gca(projection='3d')
+ 
+# I think this is the sort of thing you want:
+ 
+ax.plot_trisurf(data[:,0], data[:,1], data[:,3])
+plt.show()
+'''
+import pylab as pl
+cdict = {'red': ((0.0, 0.0, 0.0),
+                 (0.5, 1.0, 0.7),
+                 (1.0, 1.0, 1.0)),
+         'green': ((0.0, 0.0, 0.0),
+                   (0.5, 1.0, 0.0),
+                   (1.0, 1.0, 1.0)),
+         'blue': ((0.0, 0.0, 0.0),
+                  (0.5, 1.0, 0.0),
+                  (1.0, 0.5, 1.0))}
+my_cmap = matplotlib.colors.LinearSegmentedColormap('my_colormap',cdict,256)
+pcolor(rand(10,10),cmap=my_cmap)
+colorbar()
+pylab.show()

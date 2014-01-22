@@ -1,0 +1,28 @@
+"""
+	Testa as funcoes para a construcao do delta_k
+	v:1.0		09/12/2013
+	Arthur E. M. Loureiro
+"""
+import numpy as np
+import pylab as pl
+np.random.seed(1267)
+n_points = 1000000
+def sigma(k_):
+	return np.cos(k_) + 1
+
+def A_k(k_):
+	return np.random.normal(0,sigma(k_), n_points)			#distribuicao gaussiana media no zero
+#print A_k(1)
+phi_k = (np.random.random(n_points))*np.pi - np.pi/2
+k=0.1
+#print sigma(k)
+fig = pl.figure()
+fig.subplots_adjust(hspace=0.25)
+ax1 = fig.add_subplot(211)
+ax2 = fig.add_subplot(212)
+ax1.set_title("Amplitude $A_k$")
+ax2.set_title("Fase $\phi_k$")
+counts, bins, ignored = ax1.hist(A_k(k), 30, normed=True)
+ax1.plot(bins, 1/(sigma(k) * np.sqrt(2 * np.pi))*np.exp( - (bins)**2 / (2 * sigma(k)**2) ),linewidth=2, color='r')
+n_points, bins, patches = ax2.hist(phi_k, 30, normed=True, facecolor='green', alpha=0.5) #cria o plot
+pl.show()

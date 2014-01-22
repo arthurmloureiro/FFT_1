@@ -1,0 +1,18 @@
+#! /usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+	Cria uma classe grid de k em 3D obedecendo a forma como se comporta
+	na FFT do python
+	v0.1
+	v1.0 - Em 3D
+	Arthur E. da Mota Loureiro
+		12/12/2013
+"""
+import numpy as np
+
+class grid3d:
+	def __init__(self,m,n,l):
+		self.m = m
+		self.n = n
+		self.l = l
+		
