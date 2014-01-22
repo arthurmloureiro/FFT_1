@@ -33,3 +33,7 @@ pl.imshow(delta_x[0], cmap=cm.jet)
 pl.grid(1)
 pl.title('Fatia do $f_x$ gerado apos a ifft de $f_k$ com $P(k) = |cos(k)| + 1$')
 pl.show()
+
+"""
+COMENTARIO LALALALALALALAALAL
+"""
