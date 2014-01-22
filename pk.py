@@ -26,19 +26,23 @@ def P(k_):
 	p_matrix = [[[Pk(k_[i][j][m]) for i in range(N-1)] for j in range(N-1)] for m in range(N-1)] 
 	return p_matrix
 """
+
+p_matrix =np.asarray([[[ np.abs(Pk(k.matrix[i][j][n])) for i in range(N-1)] for j in range(N-1)] for n in range(N-1)])
+"""
 def P(k_):
         return np.abs(np.cos(k_)) + 1
        # return Pk(k_)
-	
+"""	
 def A_k(P_):
-	return np.random.normal(0,P(P_)*2.)				#distribuicao gaussiana media no zero
+	return np.random.normal(0,P_*2.)				#distribuicao gaussiana media no zero
 def phi_k(P_): 
 	return (np.random.random(len(A_k(P_))))*2.*np.pi - np.pi	#distr. homog. de -pi a +pi
 def delta_k(P_):							
 	return A_k(P_)*np.exp(1j*phi_k(P_))				#contraste de densidade em k
 
 #print f_k(k.matrix)
-delta_x = np.fft.ifft(delta_k(k.matrix)).real
+
+delta_x = np.fft.ifft(delta_k(p_matrix)).real
 k.plot									#plota a matriz dos k's
 pl.figure("P(k)")							#plotando o espectro original
 pl.grid(1)
