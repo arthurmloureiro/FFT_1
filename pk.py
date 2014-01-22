@@ -24,6 +24,9 @@ def phi_k(k_):
 def delta_k(k_):							
 	return A_k(k_)*np.exp(1j*phi_k(k_))				#contraste de densidade em k
 
+"""
+COMENTARIO LALALALALALALAALAL
+"""
 #print f_k(k.matrix)
 delta_x = np.fft.ifft(delta_k(k.matrix)).real
 k.plot
@@ -34,6 +37,4 @@ pl.grid(1)
 pl.title('Fatia do $f_x$ gerado apos a ifft de $f_k$ com $P(k) = |cos(k)| + 1$')
 pl.show()
 
-"""
-COMENTARIO LALALALALALALAALAL
-"""
+
