@@ -27,9 +27,9 @@ class grid3d:
 #		ky0 = np.pi/5
 #		kz0 = np.pi/5
 		
-		kx0=1.1849/m		#k_max do espectro do CAMB
-		ky0=1.1849/n
-		kz0=1.1849/l
+		kx0=(2.*np.pi)*1.1849/m		#k_max do espectro do CAMB
+		ky0=(2.*np.pi)*1.1849/n
+		kz0=(2.*np.pi)*1.1849/l
 		
 		prime_x=np.arange(1,(m+1)/2,1)*kx0		
 		invert_prime_x = -prime_x[::-1]			

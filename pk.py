@@ -43,6 +43,7 @@ def delta_k(P_):
 #print f_k(k.matrix)
 
 delta_x = np.fft.ifft(delta_k(p_matrix)).real
+delta_x = (2./len(delta_x))*delta_x
 k.plot									#plota a matriz dos k's
 pl.figure("P(k)")							#plotando o espectro original
 pl.grid(1)
