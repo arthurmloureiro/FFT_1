@@ -15,17 +15,12 @@ from mpl_toolkits.mplot3d.axes3d import Axes3D
 from matplotlib import cm
 from scipy import interpolate
 
-N = 70
-k = gr.grid3d(N,N,N)							#cria o grid e tudo mais de NxNxN
+N = 71
+
 k_r , P_k = np.loadtxt('fid_matterpower.dat', unpack=True)		#pega o P(k) do Raul
+kmax = np.max(k_r)
+k = gr.grid3d(N,N,N,kmax)							#cria o grid e tudo mais de NxNxN
 Pk = interpolate.InterpolatedUnivariateSpline(k_r,P_k)
-#kk = k.matrix*k.matrix
-#p_matrix = [[[Pk(k.matrix[i][j][m]) for i in range(N-1)] for j in range(N-1)] for m in range(N-1)] 
-"""
-def P(k_):
-	p_matrix = [[[Pk(k_[i][j][m]) for i in range(N-1)] for j in range(N-1)] for m in range(N-1)] 
-	return p_matrix
-"""
 
 p_matrix =np.asarray([[[ np.abs(Pk(k.matrix[i][j][n])) for i in range(N-1)] for j in range(N-1)] for n in range(N-1)])
 """
@@ -42,18 +37,21 @@ def delta_k(P_):
 
 #print f_k(k.matrix)
 
-delta_x = np.fft.ifft(delta_k(p_matrix)).real
+delta_x = np.fft.ifft(delta_k(p_matrix))
 delta_x = (2./len(delta_x))*delta_x
-k.plot									#plota a matriz dos k's
+k.plot	
+pl.colorbar()								#plota a matriz dos k's
 pl.figure("P(k)")							#plotando o espectro original
 pl.grid(1)
 pl.loglog()
 pl.xlabel("k")
 pl.ylabel('P(k)')
 pl.plot(k_r, P_k)
+pl.plot(k_r, Pk(k_r))
 pl.figure("Mapa")
 
-pl.imshow(delta_x[0], cmap=cm.jet)
+pl.imshow(delta_x[0].real, cmap=cm.jet)
+pl.colorbar()
 #pl.imshow(f_k(k.matrix)[0].real, cmap=cm.jet)
 pl.grid(1)
 pl.title('Fatia do $\delta_x$ gerado apos a ifft de $\delta_k$ com $P(k)$')
