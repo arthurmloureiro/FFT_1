@@ -29,7 +29,7 @@ def P(k_):
        # return Pk(k_)
 """	
 def A_k(P_):
-	return np.random.normal(0,P_*2.)				#distribuicao gaussiana media no zero
+	return np.random.normal(0,np.sqrt(P_)*2.)			#distribuicao gaussiana media no zero E DESVIO SQRT(P_k)
 def phi_k(P_): 
 	return (np.random.random(len(p_matrix)))*2.*np.pi - np.pi	#distr. homog. de -pi a +pi
 def delta_k(P_):							
@@ -37,7 +37,7 @@ def delta_k(P_):
 
 #print f_k(k.matrix)
 
-delta_x = np.fft.ifft(delta_k(p_matrix))
+delta_x = np.fft.ifft(delta_k(p_matrix).real)
 delta_x = (2./len(delta_x))*delta_x
 k.plot	
 pl.colorbar()								#plota a matriz dos k's
@@ -50,7 +50,7 @@ pl.plot(k_r, P_k)
 pl.plot(k_r, Pk(k_r))
 pl.figure("Mapa")
 
-pl.imshow(delta_x[0].real, cmap=cm.jet)
+pl.imshow(delta_x[:,0,:].real, cmap=cm.jet)
 pl.colorbar()
 #pl.imshow(f_k(k.matrix)[0].real, cmap=cm.jet)
 pl.grid(1)
