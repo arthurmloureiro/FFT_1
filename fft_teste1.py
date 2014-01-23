@@ -7,36 +7,38 @@
 """
 import numpy as np
 import pylab as pl
-N=100
-tamanho = 40000
-#x=np.linspace(0.0,np.pi*2, L)
-#x=np.linspace(-10.,10., L)
-x = 1./tamanho * np.arange(N)
-froc = (tamanho/N)*np.arange(N)
-#x=np.random.random(L)*2*np.pi
-freq1 = 50.0
-freq2 = 300.45
-A_0 = 2.0
-M= A_0*np.sin(2.*np.pi*freq1*x) + np.sin(2.*np.pi*freq2*x)		#cosseno
-#M=A_0*np.exp(-(freq1*x**2)/2)			#gaussiana
-#M = A_0*np.exp(1j*freq1*x)			#exponencial normal
 
-four = np.fft.fft(M)
-freq_ = np.fft.fftfreq(x.shape[-1])
+size = 4410
+N = 1024
+
+time = (1./size)*np.arange(-N/2,N/2)
+#time = np.arange(-N/2,N/2)
+freq = (size/N)*np.arange(-N/2,N/2)
+
+a1 = 4.0
+a2 = 6.0
+f1 = 40.
+f2 = 600.
+
+#f = a1*np.sin(2.*np.pi*f1*time) + a2*np.sin(2.*np.pi*f2*time)
+f = a1*np.exp(-(f2*2*time**2)/2)       
+four = np.fft.fft(f)
+
 
 fig = pl.figure()
 fig.subplots_adjust(hspace=0.50)
 ax1 = fig.add_subplot(311)					#faz subplots, 3-> graf na horiz, 1 -> na vertical, 1-> numero do grafico
 ax2 = fig.add_subplot(312)
 ax3 = fig.add_subplot(313)
-ax2.plot(froc,four.real)
+ax2.plot(freq,np.abs(four)*(2./(N)))
+#ax2.plot(freq, four)#*(1./(np.sqrt(len(four)))))
 #fig.title('transformada de $10*cos(27*x)*cos(47*x)$')
-ax1.set_title('$f(x) =' + str(A_0) + ' *cos(' + str(freq1)+ '*x) + cos('+str(freq2)+'*x)$')
+#ax1.set_title('$f(x) =' + str(A_0) + ' *cos(' + str(freq1)+ '*x) + cos('+str(freq2)+'*x)$')
 ax3.set_title(r'$|\bar{F(k)}|^2$')
 ax2.set_title(r'$Re(\bar{F(k)})$ ')
 #ax2.set_xlim(0,L/2)
 #ax3.set_xlim(0,L/2)
 ax3.plot(np.abs(four)**2)
 #ax3.plot(freq_,four.real, freq_, four.imag)
-ax1.plot(M, '.')
+ax1.plot(f, '.')
 pl.show()
