@@ -40,7 +40,7 @@ def P(k_):
        # return Pk(k_)
 """	
 def A_k(P_):
-	return np.random.normal(0,np.sqrt(P_)*2.)			#distribuicao gaussiana media no zero E DESVIO SQRT(P_k)
+	return np.random.normal(0,np.sqrt(P_*2.))			#distribuicao gaussiana media no zero E DESVIO SQRT(2*P_k)
 def phi_k(P_): 
 	return (np.random.random(len(p_matrix)))*2.*np.pi - np.pi	#distr. homog. de -pi a +pi
 def delta_k(P_):							
@@ -48,10 +48,10 @@ def delta_k(P_):
 
 #print f_k(k.matrix)
 
-delta_x = np.fft.ifftn(delta_k(p_matrix))
-#delta_x = (1./np.sqrt(delta_x.size))*delta_x#*(2*np.pi/kmax)**3
-delta_x = delta_x/(2*np.pi/kmax)**3
-print np.sum(delta_x.real*delta_x.real)/delta_x.real.size
+delta_x = p_matrix.size*np.fft.ifftn(delta_k(p_matrix)/p_matrix.size)
+#delta_x = ((delta_x.size/(np.pi))**(3./2))*delta_x
+#delta_x = delta_x/(2*np.pi/(kmax*len(delta_x.real)))**3
+print np.mean(delta_x.real**2)						#deve ser aprox. 0.9
 k.plot	
 pl.colorbar()								#plota a matriz dos k's
 pl.figure("P(k)")							#plotando o espectro original
