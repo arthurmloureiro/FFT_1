@@ -5,6 +5,7 @@
 	v0.8 - Plota tanto os k's quanto a matriz dos delta_x
 	v0.9 - Usa valores do CAMB em P(k) e interpola eles -----PROBLEMA: Preciso transformar o meu grid em
 		valores físicos
+	v1.0 - é feita uma DFT em N dimensões, problemas quanto a normalização e unidades físicas
 	Arthur E. da Mota Loureiro
 		12/12/2013
 """
@@ -15,15 +16,17 @@ from mpl_toolkits.mplot3d.axes3d import Axes3D
 from matplotlib import cm
 from scipy import interpolate
 
-N = 71
+N = 70
 
 k_r , P_k = np.loadtxt('fid_matterpower.dat', unpack=True)		#pega o P(k) do Raul
 kmax = np.max(k_r)
 k = gr.grid3d(N,N,N,kmax)							#cria o grid e tudo mais de NxNxN
 Pk = interpolate.InterpolatedUnivariateSpline(k_r,P_k)
 #Pk = interpolate.interp1d(k_r,P_k)
-#p_matrix =np.asarray([[[ np.abs(Pk(k.matrix[i][j][n])) for i in range(N-1)] for j in range(N-1)] for n in range(N-1)])
-p_matrix =np.asarray([[[ Pk(k.matrix[i][j][n]) for i in range(N)] for j in range(N)] for n in range(N)])
+if N%2 == 0:
+	p_matrix =np.asarray([[[ Pk(k.matrix[i][j][n]) for i in range(N-1)] for j in range(N-1)] for n in range(N-1)])
+else:
+	p_matrix =np.asarray([[[ Pk(k.matrix[i][j][n]) for i in range(N)] for j in range(N)] for n in range(N)])
 """
 p_matrix2 = np.zeros_like(k.matrix)
 for i in range(N-1):
@@ -46,8 +49,8 @@ def delta_k(P_):
 #print f_k(k.matrix)
 
 delta_x = np.fft.ifftn(delta_k(p_matrix))
-delta_x = (1./np.sqrt(delta_x.size))*delta_x#*(2*np.pi/kmax)**3
-#delta_x = delta_x*(2*np.pi/kmax)**3
+#delta_x = (1./np.sqrt(delta_x.size))*delta_x#*(2*np.pi/kmax)**3
+delta_x = delta_x/(2*np.pi/kmax)**3
 print np.sum(delta_x.real*delta_x.real)/delta_x.real.size
 k.plot	
 pl.colorbar()								#plota a matriz dos k's
