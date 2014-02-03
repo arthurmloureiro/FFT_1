@@ -23,9 +23,12 @@ class grid3d:
 		self.size_y = n
 		self.size_z = l
 		self.kmax = k_max
-		kx0 = 2*k_max/(m)				# k0 tem que ser este valor para que |k| < k_max
-		ky0 = 2*k_max/(n)	
-		kz0 = 2*k_max/(l)
+		self.box_size_x = 2*np.pi/(k_max/m)
+		self.box_size_y = 2*np.pi/(k_max/n)
+		self.box_size_z = 2*np.pi/(k_max/l)
+		kx0 = 2*k_max/(m+1)				# k0 tem que ser este valor para que |k| < k_max
+		ky0 = 2*k_max/(n+1)	
+		kz0 = 2*k_max/(l+1)
 		
 #		kx0=(2.*np.pi)*k_max/m		#k_max do espectro do CAMB
 #		ky0=(2.*np.pi)*k_max/n
@@ -33,19 +36,19 @@ class grid3d:
 		
 		prime_x=np.arange(1,(m+1)/2,1)*kx0		
 		invert_prime_x = -prime_x[::-1]			
-		prime_x = np.insert(prime_x, 0,1e-4)		
+		prime_x = np.insert(prime_x, 0,0)		
 		self.k_x = np.append(prime_x,invert_prime_x)		
 
 
 		prime_y=np.arange(1,(n+1)/2,1)*ky0		
 		invert_prime_y = -prime_y[::-1]			
-		prime_y = np.insert(prime_y, 0,1e-4)		
+		prime_y = np.insert(prime_y, 0,0)		
 		self.k_y = np.append(prime_y,invert_prime_y)		
 
 
 		prime_z=np.arange(1,(l+1)/2,1)*kz0		#
 		invert_prime_z = -prime_z[::-1]			#inverte a ordem de prime e a deixa negativa
-		prime_z = np.insert(prime_z, 0,1e-4)		#adiciona o valor zero na posição 0
+		prime_z = np.insert(prime_z, 0,0)		#adiciona o valor zero na posição 0
 		self.k_z = np.append(prime_z,invert_prime_z)	#junta todos os vetores
 		
 		self.matrix = (1./np.sqrt(3))*np.asarray([[[ np.sqrt(self.k_x[i]**2 + self.k_y[j]**2 +self.k_z[k]**2) for i in range(len(self.k_x))] for j in range(len(self.k_y))] for k in range(len(self.k_z))])

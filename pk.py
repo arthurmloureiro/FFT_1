@@ -16,11 +16,13 @@ from mpl_toolkits.mplot3d.axes3d import Axes3D
 from matplotlib import cm
 from scipy import interpolate
 
-N = 70
+N = 120
 
 k_r , P_k = np.loadtxt('fid_matterpower.dat', unpack=True)		#pega o P(k) do Raul
+k_r = np.insert(k_r,0,0.)						#insere P(k=0) = 0 antes de interpolar
+P_k = np.insert(P_k,0,0.)						#mesma coisa que acima
 kmax = np.max(k_r)
-k = gr.grid3d(N,N,N,kmax)							#cria o grid e tudo mais de NxNxN
+k = gr.grid3d(N,N,N,kmax)						#cria o grid e tudo mais de NxNxN
 Pk = interpolate.InterpolatedUnivariateSpline(k_r,P_k)
 #Pk = interpolate.interp1d(k_r,P_k)
 if N%2 == 0:
@@ -47,11 +49,13 @@ def delta_k(P_):
 	return A_k(P_)*np.exp(1j*phi_k(P_))				#contraste de densidade em k
 
 #print f_k(k.matrix)
-
-delta_x = p_matrix.size*np.fft.ifftn(delta_k(p_matrix)/p_matrix.size)
+volume = k.box_size_x*k.box_size_y*k.box_size_z
+delta_x = volume*np.fft.ifftn(delta_k(p_matrix)/p_matrix.size).real
+#delta_x = volume*np.fft.ifftn(delta_k(p_matrix)).real
+#delta_x = np.fft.ifftn(delta_k(p_matrix))
 #delta_x = ((delta_x.size/(np.pi))**(3./2))*delta_x
 #delta_x = delta_x/(2*np.pi/(kmax*len(delta_x.real)))**3
-print np.mean(delta_x.real**2)						#deve ser aprox. 0.9
+print np.mean(delta_x*delta_x)						#deve ser aprox. 0.9
 k.plot	
 pl.colorbar()								#plota a matriz dos k's
 pl.figure("P(k)")							#plotando o espectro original
@@ -62,8 +66,8 @@ pl.ylabel('P(k)')
 pl.plot(k_r, P_k)
 pl.plot(k_r, Pk(k_r))
 pl.figure("Mapa")
-
-pl.imshow(delta_x[:,0,:].real, cmap=cm.jet)
+pl.title("$\delta(x)_{i,0,k}$")
+pl.imshow(delta_x[:,0,:], cmap=cm.jet)
 pl.colorbar()
 #pl.imshow(f_k(k.matrix)[0].real, cmap=cm.jet)
 pl.grid(1)
