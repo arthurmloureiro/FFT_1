@@ -23,9 +23,9 @@ class grid3d:
 		self.size_y = n
 		self.size_z = l
 		self.kmax = k_max
-		self.box_size_x = 2*np.pi/(k_max/m)
-		self.box_size_y = 2*np.pi/(k_max/n)
-		self.box_size_z = 2*np.pi/(k_max/l)
+		self.box_size_x = np.pi*(m+1)/(k_max)
+		self.box_size_y = np.pi*(n+1)/(k_max)
+		self.box_size_z = np.pi*(l+1)/(k_max)
 		kx0 = 2*k_max/(m+1)				# k0 tem que ser este valor para que |k| < k_max
 		ky0 = 2*k_max/(n+1)	
 		kz0 = 2*k_max/(l+1)
