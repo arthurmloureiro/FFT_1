@@ -16,7 +16,7 @@ from mpl_toolkits.mplot3d.axes3d import Axes3D
 from matplotlib import cm
 from scipy import interpolate
 
-N = 120
+N = 70
 
 k_r , P_k = np.loadtxt('fid_matterpower.dat', unpack=True)		#pega o P(k) do Raul
 k_r = np.insert(k_r,0,0.)						#insere P(k=0) = 0 antes de interpolar
@@ -44,7 +44,8 @@ def P(k_):
 def A_k(P_):
 	return np.random.normal(0,np.sqrt(P_*2.))			#distribuicao gaussiana media no zero E DESVIO SQRT(2*P_k)
 def phi_k(P_): 
-	return (np.random.random(len(p_matrix)))*2.*np.pi - np.pi	#distr. homog. de -pi a +pi
+#	return (np.random.random(len(p_matrix)))*2.*np.pi - np.pi	#distr. homog. de -pi a +pi
+	return (np.random.random(len(P_)))*2.*np.pi			#segundo Padmanabhan pg 191
 def delta_k(P_):							
 	return A_k(P_)*np.exp(1j*phi_k(P_))				#contraste de densidade em k
 
