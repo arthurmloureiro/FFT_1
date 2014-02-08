@@ -22,7 +22,7 @@ class grid3d:
 		self.size_x = m
 		self.size_y = n
 		self.size_z = l
-		self.kmax = k_max
+		self.kmax = np.pi/10
 		self.box_size_x = np.pi*(m+1)/(k_max)
 		self.box_size_y = np.pi*(n+1)/(k_max)
 		self.box_size_z = np.pi*(l+1)/(k_max)

@@ -21,42 +21,35 @@ N = 70
 k_r , P_k = np.loadtxt('fid_matterpower.dat', unpack=True)		#pega o P(k) do Raul
 k_r = np.insert(k_r,0,0.)						#insere P(k=0) = 0 antes de interpolar
 P_k = np.insert(P_k,0,0.)						#mesma coisa que acima
-kmax = np.max(k_r)
-k = gr.grid3d(N,N,N,kmax)						#cria o grid e tudo mais de NxNxN
+#kmax = np.max(k_r)
+kmax = (np.pi/10.)#*((N+1.)/(N-1.))
+k = gr.grid3d(N,N,N,kmax)
+volume = k.box_size_x*k.box_size_y*k.box_size_z				#cria o grid e tudo mais de NxNxN
 Pk = interpolate.InterpolatedUnivariateSpline(k_r,P_k)
 #Pk = interpolate.interp1d(k_r,P_k)
 if N%2 == 0:
 	p_matrix =np.asarray([[[ Pk(k.matrix[i][j][n]) for i in range(N-1)] for j in range(N-1)] for n in range(N-1)])
 else:
 	p_matrix =np.asarray([[[ Pk(k.matrix[i][j][n]) for i in range(N)] for j in range(N)] for n in range(N)])
-"""
-p_matrix2 = np.zeros_like(k.matrix)
-for i in range(N-1):
-	for j in range(N-1):
-		for n in range(N-1):
-			p_matrix2[i][j][n] = Pk(k.matrix[i][j][n])
-"""
-"""
-def P(k_):
-        return np.abs(np.cos(k_)) + 1
-       # return Pk(k_)
-"""	
+
 def A_k(P_):
-	return np.random.normal(0,np.sqrt(P_*2.))			#distribuicao gaussiana media no zero E DESVIO SQRT(2*P_k)
+	return np.random.normal(0,np.sqrt(P_*2.*volume))		#distribuicao gaussiana media no zero E DESVIO SQRT(2*P_k)
+									#incluído volume para fechar as unidades da maneira certa
 def phi_k(P_): 
 #	return (np.random.random(len(p_matrix)))*2.*np.pi - np.pi	#distr. homog. de -pi a +pi
-	return (np.random.random(len(P_)))*2.*np.pi			#segundo Padmanabhan pg 191
+	return (np.random.random(len(P_)))*2.*np.pi			#segundo Padmanabhan pg 191 ===> É A MESMA COISA
 def delta_k(P_):							
 	return A_k(P_)*np.exp(1j*phi_k(P_))				#contraste de densidade em k
 
 #print f_k(k.matrix)
-volume = k.box_size_x*k.box_size_y*k.box_size_z
-delta_x = volume*np.fft.ifftn(delta_k(p_matrix)/p_matrix.size).real
+
+delta_x = (p_matrix.size/volume)*np.fft.ifftn(delta_k(p_matrix)).real
 #delta_x = volume*np.fft.ifftn(delta_k(p_matrix)).real
 #delta_x = np.fft.ifftn(delta_k(p_matrix))
 #delta_x = ((delta_x.size/(np.pi))**(3./2))*delta_x
 #delta_x = delta_x/(2*np.pi/(kmax*len(delta_x.real)))**3
-print np.mean(delta_x*delta_x)						#deve ser aprox. 0.9
+print np.mean(delta_x*delta_x)	
+print "Lado da celula = " + str(np.power(volume,1./3)/N)	+ " Mpc"				#deve ser aprox. 0.9
 k.plot	
 pl.colorbar()								#plota a matriz dos k's
 pl.figure("P(k)")							#plotando o espectro original
