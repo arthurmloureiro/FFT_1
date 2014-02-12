@@ -6,6 +6,7 @@
 	v0.1
 	v1.0 - Em 3D
 	v1.5 - pode plotar fatias da matriz
+	v1.7 - não usa k_max e sim L (tamanho do lado da caixa)
 	Arthur E. da Mota Loureiro
 		12/12/2013
 """
@@ -18,17 +19,17 @@ class grid3d:
 	'''
 	a entrada é o tamanho dos vetores k_x, k_y, k_z
 	'''
-	def __init__(self,m,n,l,k_max):
+	def __init__(self,m,n,l,L_):
 		self.size_x = m
 		self.size_y = n
 		self.size_z = l
-		self.kmax = np.pi/10
-		self.box_size_x = np.pi*(m+1)/(k_max)
-		self.box_size_y = np.pi*(n+1)/(k_max)
-		self.box_size_z = np.pi*(l+1)/(k_max)
-		kx0 = 2*k_max/(m+1)				# k0 tem que ser este valor para que |k| < k_max
-		ky0 = 2*k_max/(n+1)	
-		kz0 = 2*k_max/(l+1)
+		self.L = L_
+		#self.box_size_x = np.pi*(m+1)/(k_max)
+		#self.box_size_y = np.pi*(n+1)/(k_max)
+		#self.box_size_z = np.pi*(l+1)/(k_max)
+		kx0 = (2*np.pi)/L_			# k0 tem que ser este valor para que |k| < k_max
+		ky0 = (2*np.pi)/L_
+		kz0 = (2*np.pi)/L_
 		
 #		kx0=(2.*np.pi)*k_max/m		#k_max do espectro do CAMB
 #		ky0=(2.*np.pi)*k_max/n
@@ -51,7 +52,7 @@ class grid3d:
 		prime_z = np.insert(prime_z, 0,0)		#adiciona o valor zero na posição 0
 		self.k_z = np.append(prime_z,invert_prime_z)	#junta todos os vetores
 		
-		self.matrix = (1./np.sqrt(3))*np.asarray([[[ np.sqrt(self.k_x[i]**2 + self.k_y[j]**2 +self.k_z[k]**2) for i in range(len(self.k_x))] for j in range(len(self.k_y))] for k in range(len(self.k_z))])
+		self.matrix = (1./np.sqrt(3.))*np.asarray([[[ np.sqrt(self.k_x[i]**2 + self.k_y[j]**2 +self.k_z[k]**2) for i in range(len(self.k_x))] for j in range(len(self.k_y))] for k in range(len(self.k_z))])
 		pl.figure("Matriz de k")
 		self.plot = pl.imshow(self.matrix[3], cmap=cm.jet)
 		#pl.show()

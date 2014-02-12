@@ -16,24 +16,24 @@ from mpl_toolkits.mplot3d.axes3d import Axes3D
 from matplotlib import cm
 from scipy import interpolate
 
-N = 70
+N = 101									#Numero de celuas
+vol_celula = 10.							#volume da célula
+L = vol_celula*N							#Tamanho em Mpc
 
 k_r , P_k = np.loadtxt('fid_matterpower.dat', unpack=True)		#pega o P(k) do Raul
 k_r = np.insert(k_r,0,0.)						#insere P(k=0) = 0 antes de interpolar
 P_k = np.insert(P_k,0,0.)						#mesma coisa que acima
-#kmax = np.max(k_r)
-kmax = (np.pi/10.)#*((N+1.)/(N-1.))
-k = gr.grid3d(N,N,N,kmax)
-volume = k.box_size_x*k.box_size_y*k.box_size_z				#cria o grid e tudo mais de NxNxN
+
+
+k = gr.grid3d(N,N,N,L)
+volume = np.power(L,3.)			#cria o grid e tudo mais de NxNxN
 Pk = interpolate.InterpolatedUnivariateSpline(k_r,P_k)
-#Pk = interpolate.interp1d(k_r,P_k)
-if N%2 == 0:
-	p_matrix =np.asarray([[[ Pk(k.matrix[i][j][n]) for i in range(N-1)] for j in range(N-1)] for n in range(N-1)])
-else:
-	p_matrix =np.asarray([[[ Pk(k.matrix[i][j][n]) for i in range(N)] for j in range(N)] for n in range(N)])
+
+p_matrix =np.asarray([[[ Pk(k.matrix[i][j][n]) for i in range(len(k.k_x))] for j in range(len(k.k_y))] for n in range(len(k.k_z))])
 
 def A_k(P_):
-	return np.random.normal(0,np.sqrt(P_*2.*volume))		#distribuicao gaussiana media no zero E DESVIO SQRT(2*P_k)
+	return np.random.normal(0,np.sqrt(2.*P_*volume))		#distribuicao gaussiana media no zero E DESVIO SQRT(2*P_k)
+	#return np.random.normal(0,(2.*P_*volume))		#distribuicao gaussiana media no zero E DESVIO SQRT(2*P_k)
 									#incluído volume para fechar as unidades da maneira certa
 def phi_k(P_): 
 #	return (np.random.random(len(p_matrix)))*2.*np.pi - np.pi	#distr. homog. de -pi a +pi
@@ -43,13 +43,19 @@ def delta_k(P_):
 
 #print f_k(k.matrix)
 
-delta_x = (p_matrix.size/volume)*np.fft.ifftn(delta_k(p_matrix)).real
-#delta_x = volume*np.fft.ifftn(delta_k(p_matrix)).real
-#delta_x = np.fft.ifftn(delta_k(p_matrix))
-#delta_x = ((delta_x.size/(np.pi))**(3./2))*delta_x
-#delta_x = delta_x/(2*np.pi/(kmax*len(delta_x.real)))**3
-print np.mean(delta_x*delta_x)	
-print "Lado da celula = " + str(np.power(volume,1./3)/N)	+ " Mpc"				#deve ser aprox. 0.9
+delta_x = (delta_k(p_matrix).size/volume)*np.fft.ifftn(delta_k(p_matrix)).real
+print "################################################################"
+print "                           DADOS                                "
+print "################################################################"
+print "Lado total = " + str(L) + " Mpc"
+print "Lado depois das contas = " + str((np.power(delta_x.size,1./3)))
+print "Volume total = " + str(volume) + " Mpc^3"
+print "Numero de celulas = " + str(len(delta_x))
+print "Lado da celula = " + str(np.power(volume,1./3)/N) + " Mpc"	#para /\x = 10. Mpc
+print "<delta_x^2> = " + str(np.std(delta_x))				#deve ser aprox. 0.9
+print "k_max teorico: " + str(np.pi*(N-1)/L)
+print "k_max prático: " + str(np.max(k.matrix))
+print "################################################################"
 k.plot	
 pl.colorbar()								#plota a matriz dos k's
 pl.figure("P(k)")							#plotando o espectro original
@@ -57,8 +63,9 @@ pl.grid(1)
 pl.loglog()
 pl.xlabel("k")
 pl.ylabel('P(k)')
-pl.plot(k_r, P_k)
-pl.plot(k_r, Pk(k_r))
+pl.plot(k_r[1:], P_k[1:])
+pl.plot(k_r[1:], Pk(k_r)[1:])
+pl.axvline(x=np.max(k.matrix), linewidth=2., color='r')
 pl.figure("Mapa")
 pl.title("$\delta(x)_{i,0,k}$")
 pl.imshow(delta_x[:,0,:], cmap=cm.jet)
