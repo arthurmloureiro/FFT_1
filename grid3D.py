@@ -52,7 +52,7 @@ class grid3d:
 		prime_z = np.insert(prime_z, 0,0)		#adiciona o valor zero na posição 0
 		self.k_z = np.append(prime_z,invert_prime_z)	#junta todos os vetores
 		
-		self.matrix = (1./np.sqrt(3.))*np.asarray([[[ np.sqrt(self.k_x[i]**2 + self.k_y[j]**2 +self.k_z[k]**2) for i in range(len(self.k_x))] for j in range(len(self.k_y))] for k in range(len(self.k_z))])
+		self.matrix = np.asarray([[[ np.sqrt(self.k_x[i]**2 + self.k_y[j]**2 +self.k_z[k]**2) for i in range(len(self.k_x))] for j in range(len(self.k_y))] for k in range(len(self.k_z))])
 		pl.figure("Matriz de k")
 		self.plot = pl.imshow(self.matrix[3], cmap=cm.jet)
 		#pl.show()
