@@ -6,6 +6,7 @@
 	v0.9 - Usa valores do CAMB em P(k) e interpola eles -----PROBLEMA: Preciso transformar o meu grid em
 		valores físicos
 	v1.0 - é feita uma DFT em N dimensões, problemas quanto a normalização e unidades físicas
+	v1.5 - A normalização está quase correta
 	Arthur E. da Mota Loureiro
 		12/12/2013
 """
@@ -16,8 +17,8 @@ from mpl_toolkits.mplot3d.axes3d import Axes3D
 from matplotlib import cm
 from scipy import interpolate
 
-N = 101									#Numero de celuas
-vol_celula = 10.							#volume da célula
+N = 71									#Numero de celulas
+vol_celula = 18.							#volume da celula
 L = vol_celula*N							#Tamanho em Mpc
 
 k_r , P_k = np.loadtxt('fid_matterpower.dat', unpack=True)		#pega o P(k) do Raul
@@ -43,18 +44,23 @@ def delta_k(P_):
 
 #print f_k(k.matrix)
 
-delta_x = (delta_k(p_matrix).size/volume)*np.fft.ifftn(delta_k(p_matrix)).real
+delta_x = ((delta_k(p_matrix).size)/volume)*np.fft.ifftn(delta_k(p_matrix)).real
+k_max_cal = np.sqrt(3.)*np.pi*(float(N)/L)
+k_max_cal2 = np.sqrt(np.power(np.max(k.k_x),2)+np.power(np.max(k.k_y),2)+np.power(np.max(k.k_z),2))
 print "################################################################"
 print "                           DADOS                                "
 print "################################################################"
-print "Lado total = " + str(L) + " Mpc"
-print "Lado depois das contas = " + str((np.power(delta_x.size,1./3)))
-print "Volume total = " + str(volume) + " Mpc^3"
-print "Numero de celulas = " + str(len(delta_x))
-print "Lado da celula = " + str(np.power(volume,1./3)/N) + " Mpc"	#para /\x = 10. Mpc
+print "Lado total: " + str(L) + " Mpc"
+print "Lado depois das contas: " + str((np.power(delta_x.size,1./3)))
+print "Volume total: " + str(volume) + " Mpc^3"
+print "Numero de celulas de delta_x: " + str(len(delta_x))
+print "Lado da celula: " + str(np.power(volume,1./3)/N) + " Mpc"	#para /\x = 10. Mpc
+print "Celula (depois dos calculos): " + str( np.pi/np.max(k.matrix) )
+print "alt1                        : " + str( np.pi/k_max_cal)
+print "alt2                        : " + str( np.pi/k_max_cal2)
 print "<delta_x^2> = " + str(np.std(delta_x))				#deve ser aprox. 0.9
-print "k_max teorico: " + str(np.pi*(N-1)/L)
-print "k_max prático: " + str(np.max(k.matrix))
+print "k_max calculado: " + str(k_max_cal) + "----" + str(k_max_cal2)
+print "k_max da matriz de k: " + str(np.max(k.matrix))
 print "################################################################"
 k.plot	
 pl.colorbar()								#plota a matriz dos k's
