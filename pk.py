@@ -16,25 +16,27 @@ import grid3D as gr
 from mpl_toolkits.mplot3d.axes3d import Axes3D
 from matplotlib import cm
 from scipy import interpolate
-
-N = 71									#Numero de celulas
-vol_celula = 18.							#volume da celula
-L = vol_celula*N							#Tamanho em Mpc
-
+#lado = np.power((4.*np.pi*8.*8.*8.)/3,1./3)
+#lado = 8./np.sqrt(3.)
+lado = 10.0
+########################DADOS INICIAIS###################################
+N_x = 81 ; N_y = 81 ; N_z = 81						#Numero de celulas em x,y,z
+d_x = lado ; d_y = lado ; d_z = lado					#volume da celula em x,y,z em Mpc
+l_x = d_x*N_x ; l_y = d_y*N_y ; l_z = d_z*N_z				#Tamanho da caixa em Mpc em x,y,z
+#########################################################################
 k_r , P_k = np.loadtxt('fid_matterpower.dat', unpack=True)		#pega o P(k) do Raul
 k_r = np.insert(k_r,0,0.)						#insere P(k=0) = 0 antes de interpolar
 P_k = np.insert(P_k,0,0.)						#mesma coisa que acima
 
 
-k = gr.grid3d(N,N,N,L)
-volume = np.power(L,3.)			#cria o grid e tudo mais de NxNxN
-Pk = interpolate.InterpolatedUnivariateSpline(k_r,P_k)
+k = gr.grid3d(N_x,N_y,N_z,l_x,l_y,l_z)					#cria o grid com qualquer tamanho em 3D
+volume = l_x*l_y*l_z							
+Pk = interpolate.InterpolatedUnivariateSpline(k_r,P_k)			#interpola os dados do CAMB
 
 p_matrix =np.asarray([[[ Pk(k.matrix[i][j][n]) for i in range(len(k.k_x))] for j in range(len(k.k_y))] for n in range(len(k.k_z))])
 
 def A_k(P_):
 	return np.random.normal(0,np.sqrt(2.*P_*volume))		#distribuicao gaussiana media no zero E DESVIO SQRT(2*P_k)
-	#return np.random.normal(0,(2.*P_*volume))		#distribuicao gaussiana media no zero E DESVIO SQRT(2*P_k)
 									#incluído volume para fechar as unidades da maneira certa
 def phi_k(P_): 
 #	return (np.random.random(len(p_matrix)))*2.*np.pi - np.pi	#distr. homog. de -pi a +pi
@@ -42,24 +44,24 @@ def phi_k(P_):
 def delta_k(P_):							
 	return A_k(P_)*np.exp(1j*phi_k(P_))				#contraste de densidade em k
 
-#print f_k(k.matrix)
-
+############################# FFT #######################################
 delta_x = ((delta_k(p_matrix).size)/volume)*np.fft.ifftn(delta_k(p_matrix)).real
-k_max_cal = np.sqrt(3.)*np.pi*(float(N)/L)
-k_max_cal2 = np.sqrt(np.power(np.max(k.k_x),2)+np.power(np.max(k.k_y),2)+np.power(np.max(k.k_z),2))
+#########################################################################
+
+#k_max_cal = np.sqrt(np.power(np.max(k.k_x),-2)+np.power(np.max(k.k_y),-2)+np.power(np.max(k.k_z),-2))
 print "################################################################"
 print "                           DADOS                                "
 print "################################################################"
-print "Lado total: " + str(L) + " Mpc"
-print "Lado depois das contas: " + str((np.power(delta_x.size,1./3)))
+print "Lx: " + str(l_x) + " Mpc // Ly: " + str(l_y) + " Mpc // Lz: " + str(l_z) + " Mpc"
+#print "Lado depois das contas: " + str((np.power(delta_x.size,1./3)))  #Não faz sentido se não é um cubo
 print "Volume total: " + str(volume) + " Mpc^3"
 print "Numero de celulas de delta_x: " + str(len(delta_x))
-print "Lado da celula: " + str(np.power(volume,1./3)/N) + " Mpc"	#para /\x = 10. Mpc
-print "Celula (depois dos calculos): " + str( np.pi/np.max(k.matrix) )
-print "alt1                        : " + str( np.pi/k_max_cal)
-print "alt2                        : " + str( np.pi/k_max_cal2)
-print "<delta_x^2> = " + str(np.std(delta_x))				#deve ser aprox. 0.9
-print "k_max calculado: " + str(k_max_cal) + "----" + str(k_max_cal2)
+print "Lado da celula: " + str(np.power(volume,1./3)/len(delta_x)) + " Mpc"	#para /\x = 10. Mpc
+#print "raio da celula (dados iniciais)    : " + str( np.sqrt(d_x**2 + d_y**2 + d_z**2) )
+#print "raio da celula (usando a matriz K) : " + str( np.pi/np.max(k.matrix) ) + " Mpc"
+#print "raio da celula (usando a definição): " + str( np.pi/k_max_cal) + " Mpc"
+print "<delta_r^2> = " + str(np.std(delta_x))				#deve ser aprox. 0.9
+#print "k_max calculado: " + str(k_max_cal) 
 print "k_max da matriz de k: " + str(np.max(k.matrix))
 print "################################################################"
 k.plot	
