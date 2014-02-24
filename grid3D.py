@@ -36,6 +36,7 @@ class grid3d:
 		invert_prime_x = -prime_x[::-1]			
 		prime_x = np.insert(prime_x, 0,0)		
 		self.k_x = np.append(prime_x,invert_prime_x)		
+		ident = np.ones_like(self.k_x)
 
 
 		prime_y=np.arange(1,(n_y/2+1),1)*ky0		
@@ -49,7 +50,12 @@ class grid3d:
 		prime_z = np.insert(prime_z, 0,0)		#adiciona o valor zero na posição 0
 		self.k_z = np.append(prime_z,invert_prime_z)	#junta todos os vetores
 		
-		self.matrix = np.asarray([[[ np.sqrt(self.k_x[i]**2 + self.k_y[j]**2 +self.k_z[k]**2) for i in range(len(self.k_x))] for j in range(len(self.k_y))] for k in range(len(self.k_z))])
+		self.KX2 = np.einsum('i,j,k', self.k_x*self.k_x,ident,ident)
+		self.KY2 = np.einsum('i,j,k', ident,self.k_y*self.k_y,ident)
+		self.KZ2 = np.einsum('i,j,k', ident,ident,self.k_z*self.k_z)
+		#self.matrix = np.asarray([[[ np.sqrt(self.k_x[i]**2 + self.k_y[j]**2 +self.k_z[k]**2) for i in range(len(self.k_x))] for j in range(len(self.k_y))] for k in range(len(self.k_z))])
+		
+		self.matrix = np.sqrt(self.KX2 + self.KY2 + self.KZ2)
 		pl.figure("Matriz de k")
 		self.plot = pl.imshow(self.matrix[3], cmap=cm.jet)
 		#pl.show()
