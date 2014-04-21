@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+1#! /usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 	Faz o espectro f(k) a partir de P(k)
@@ -45,7 +45,18 @@ def phi_k(P_):
 
 def delta_k(P_):							
 	return A_k(P_)*np.exp(1j*phi_k(P_))				#contraste de densidade em k
-
+"""
+			organizando em bins
+"""
+def heav(x):								#funcao heaviside
+	if x==0:
+		return 0.5
+	return 0 if x<0 else 1
+heav_vec = np.vectorize(heav)						#heaviside vetorizada
+n_bins = 40
+k_bar = np.arange(0,n_bins,1)*(np.max(k.matrix)/n_bins)
+#M = np.zeros((len(k_bar),N_x,N_y,N_z))
+M = np.asarray([heav_vec(k_bar[a+1]-k.matrix[:,:,:])*heav_vec(k.matrix[:,:,:]-k_bar[a])for a in range(len(k_bar)-1)])
 ############################# FFT #######################################
 delta_x = ((delta_k(p_matrix).size)/volume)*np.fft.ifftn(delta_k(p_matrix))
 #print "Campo complexo: " + str(delta_x[1,2,3])  
@@ -67,6 +78,14 @@ print "<delta_r^2> IMAG = " + str(np.std(delta_xi))				#deve ser aprox. 0.9
 print "k_max da matriz de k: " + str(np.max(k.matrix))
 #sys.exit(-1)
 print "################################################################"
+
+######################### Procurando P(k) ###############################
+d_k = (volume/(N_x*N_y*N_z))*np.fft.fftn(delta_xr)				# ifft de d_x.real
+
+
+"""
+				PLOTS
+"""
 k.plot	
 pl.colorbar()								#plota a matriz dos k's
 pl.figure("P(k)")							#plotando o espectro original
@@ -77,13 +96,19 @@ pl.ylabel('P(k)')
 pl.plot(k_r[1:], P_k[1:])
 pl.plot(k_r[1:], Pk(k_r)[1:])
 pl.axvline(x=np.max(k.matrix), linewidth=2., color='r')
+
 pl.figure("Mapa")
 pl.title("$\delta(x)_{i,0,k}$")
-pl.imshow(delta_xr[:,0,:], cmap=cm.jet)
+pl.imshow(delta_xr[:,0,:], cmap=cm.BuPu)
 pl.colorbar()
-#pl.imshow(f_k(k.matrix)[0].real, cmap=cm.jet)
 pl.grid(1)
 pl.title('Fatia do $\delta_x$ gerado apos a ifft de $\delta_k$ com $P(k)$')
+
+pl.figure("Bins de K")
+numb_bin =10
+pl.title("Mostrando bin numero " + str(numb_bin) + " de " + str(n_bins))
+pl.imshow(M[numb_bin,0,:,:])
+pl.colorbar()
 pl.show()
 
 
