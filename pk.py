@@ -53,7 +53,7 @@ def heav(x):								#funcao heaviside
 		return 0.5
 	return 0 if x<0 else 1
 heav_vec = np.vectorize(heav)						#heaviside vetorizada
-n_bins = 40
+n_bins = 80
 k_bar = np.arange(0,n_bins,1)*(np.max(k.matrix)/n_bins)
 #M = np.zeros((len(k_bar),N_x,N_y,N_z))
 M = np.asarray([heav_vec(k_bar[a+1]-k.matrix[:,:,:])*heav_vec(k.matrix[:,:,:]-k_bar[a])for a in range(len(k_bar)-1)])
@@ -81,7 +81,7 @@ print "################################################################"
 
 ######################### Procurando P(k) ###############################
 d_k = (volume/(N_x*N_y*N_z))*np.fft.fftn(delta_xr)				# ifft de d_x.real
-
+P_a = np.einsum("aijl,ijl,ijl->a", M, d_k,np.conj(d_k))
 
 """
 				PLOTS
@@ -95,6 +95,7 @@ pl.xlabel("k")
 pl.ylabel('P(k)')
 pl.plot(k_r[1:], P_k[1:])
 pl.plot(k_r[1:], Pk(k_r)[1:])
+pl.plot(P_a)
 pl.axvline(x=np.max(k.matrix), linewidth=2., color='r')
 
 pl.figure("Mapa")
