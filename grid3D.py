@@ -7,6 +7,7 @@
 	v1.0 - Em 3D
 	v1.5 - pode plotar fatias da matriz
 	v1.7 - não usa k_max e sim L (tamanho do lado da caixa)
+	v2.0 - usa convencao de Einstein para gerar o grid
 	Arthur E. da Mota Loureiro
 		12/12/2013
 """
@@ -56,6 +57,8 @@ class grid3d:
 		#self.matrix = np.asarray([[[ np.sqrt(self.k_x[i]**2 + self.k_y[j]**2 +self.k_z[k]**2) for i in range(len(self.k_x))] for j in range(len(self.k_y))] for k in range(len(self.k_z))])
 		
 		self.matrix = np.sqrt(self.KX2 + self.KY2 + self.KZ2)
+		#self.hist, edge = np.histogramdd(np.array(self.matrix), bins=(n_x,n_y,n_z))
 		pl.figure("Matriz de k")
 		self.plot = pl.imshow(self.matrix[3], cmap=cm.jet)
+		#self.plothist = pl.imshow(self.hist[3], cmap=cm.jet)
 		#pl.show()
