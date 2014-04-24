@@ -1,13 +1,14 @@
-1#! /usr/bin/env python
+#! /usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-	Faz o espectro f(k) a partir de P(k)
+	
 	v0.8 - Plota tanto os k's quanto a matriz dos delta_x
 	v0.9 - Usa valores do CAMB em P(k) e interpola eles -----PROBLEMA: Preciso transformar o meu grid em
 		valores físicos
 	v1.0 - é feita uma DFT em N dimensões, problemas quanto a normalização e unidades físicas
 	v1.5 - A normalização está quase correta
 	v2.0 - Faltava normalizar por sqrt(2) ou trocar 2*P(k) por P(k) na dist. Gaussiana
+	v2.5 - Organiza os d_k em bins e estima o P(k)
 	Arthur E. da Mota Loureiro
 		12/12/2013
 """
@@ -46,7 +47,7 @@ def phi_k(P_):
 def delta_k(P_):							
 	return A_k(P_)*np.exp(1j*phi_k(P_))				#contraste de densidade em k
 """
-			organizando em bins
+			ORGANIZANDO EM BINS
 """
 def heav(x):								#funcao heaviside
 	if x==0:
@@ -55,8 +56,9 @@ def heav(x):								#funcao heaviside
 heav_vec = np.vectorize(heav)						#heaviside vetorizada
 n_bins = 80
 k_bar = np.arange(0,n_bins,1)*(np.max(k.matrix)/n_bins)
-#M = np.zeros((len(k_bar),N_x,N_y,N_z))
+#k_bar = np.append(k_bar,k_bar[0],len(k_bar))
 M = np.asarray([heav_vec(k_bar[a+1]-k.matrix[:,:,:])*heav_vec(k.matrix[:,:,:]-k_bar[a])for a in range(len(k_bar)-1)])
+
 ############################# FFT #######################################
 delta_x = ((delta_k(p_matrix).size)/volume)*np.fft.ifftn(delta_k(p_matrix))
 #print "Campo complexo: " + str(delta_x[1,2,3])  
@@ -81,8 +83,10 @@ print "################################################################"
 
 ######################### Procurando P(k) ###############################
 d_k = (volume/(N_x*N_y*N_z))*np.fft.fftn(delta_xr)				# ifft de d_x.real
-P_a = np.einsum("aijl,ijl,ijl->a", M, d_k,np.conj(d_k))
-
+#P_a = np.einsum("aijl,ijl,ijl->a", M, d_k,np.conj(d_k))/volume
+P_a2 = np.einsum("aijl,ijl,ijl->a", M, d_k, np.conj(d_k))/(np.einsum("aijl->a", M)*volume)
+	#esta normalização parece ser a correta!
+#########################################################################
 """
 				PLOTS
 """
@@ -90,12 +94,20 @@ k.plot
 pl.colorbar()								#plota a matriz dos k's
 pl.figure("P(k)")							#plotando o espectro original
 pl.grid(1)
-pl.loglog()
+#pl.loglog()
+pl.yscale("log")
 pl.xlabel("k")
 pl.ylabel('P(k)')
-pl.plot(k_r[1:], P_k[1:])
-pl.plot(k_r[1:], Pk(k_r)[1:])
-pl.plot(P_a)
+pl.plot(k_r[1:], P_k[1:])						#DADOS
+pl.plot(k_r[1:], Pk(k_r)[1:], label="CAMB")						#INTERPOLADO
+#pl.plot(P_a, label="1")
+#sys.exit(-1)
+#kkk = np.arange(0,len(P_a2),1)*(2*np.pi*np.power(l_x,-1.))
+kkk = np.arange(0,len(P_a2.real),1)*(np.max(k.matrix)/n_bins)
+pl.plot(kkk,P_a2.real, color="b", label="Estimado")				#ESTIMADO
+legend = pl.legend(loc=0, shadow=True)
+frame = legend.get_frame()
+frame.set_facecolor('0.90')
 pl.axvline(x=np.max(k.matrix), linewidth=2., color='r')
 
 pl.figure("Mapa")
@@ -106,10 +118,8 @@ pl.grid(1)
 pl.title('Fatia do $\delta_x$ gerado apos a ifft de $\delta_k$ com $P(k)$')
 
 pl.figure("Bins de K")
-numb_bin =10
+numb_bin =np.random.random_integers(0,n_bins-1)
 pl.title("Mostrando bin numero " + str(numb_bin) + " de " + str(n_bins))
 pl.imshow(M[numb_bin,0,:,:])
 pl.colorbar()
 pl.show()
-
-
