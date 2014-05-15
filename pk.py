@@ -9,6 +9,7 @@
 	v1.5 - A normalização está quase correta
 	v2.0 - Faltava normalizar por sqrt(2) ou trocar 2*P(k) por P(k) na dist. Gaussiana
 	v2.5 - Organiza os d_k em bins e estima o P(k)
+   	v2.7 - Tenta fazer um campo lognormal ----- FALHANDO MISERAVELMENTE 
 	Arthur E. da Mota Loureiro
 		12/12/2013
 """
@@ -16,9 +17,11 @@ import numpy as np
 import sys
 import pylab as pl
 import grid3D as gr
+import scipy.integrate as inte
 from mpl_toolkits.mplot3d.axes3d import Axes3D
 from matplotlib import cm
 from scipy import interpolate
+
 
 lado = 10.0                                                             # em Mpc
 ########################DADOS INICIAIS###################################
@@ -27,23 +30,78 @@ d_x = lado ; d_y = lado ; d_z = lado				        #volume da celula em x,y,z em Mp
 l_x = d_x*N_x ; l_y = d_y*N_y ; l_z = d_z*N_z			        #Tamanho da caixa em Mpc em x,y,z
 #########################################################################
 k_r , P_k = np.loadtxt('fid_matterpower.dat', unpack=True)	        #pega o P(k) do CAMB
-k_r = np.insert(k_r,0,0.)						#insere P(k=0) = 0 antes de interpolar
-P_k = np.insert(P_k,0,0.)						#mesma coisa que acima
+#k_r = np.insert(k_r,0,0.)						#insere P(k=0) = 0 antes de interpolar
+#P_k = np.insert(P_k,0,0.)						#mesma coisa que acima
 
 k = gr.grid3d(N_x,N_y,N_z,l_x,l_y,l_z)					#cria o grid com qualquer tamanho em 3D
 volume = l_x*l_y*l_z							
+Pk2 = interpolate.InterpolatedUnivariateSpline(k_r,P_k)		        #interpola os dados do CAMB
+#r_k = 2.*np.pi*np.power(np.linspace(np.min(k_r),np.max(k_r), len(k_r)),-1.)
+r_k=1.0*np.linspace(0.5,200.5,201)
+dk_r=np.diff(k_r)
+dk_r=np.append(dk_r,[0.0])
 
-#Pk = interpolate.InterpolatedUnivariateSpline(k_r,P_k)		        #interpola os dados do CAMB
-corr_ln = np.power((2.*np.pi),-1.)*np.fft.ifft(P_k)
-corr_g = np.log(1.+corr_ln)
-pk_gauss = len(P_k)*np.fft.fft(corr_g)
-k_gauss = np.arange(0.,len(P_k))*2.*np.pi*np.power(len(P_k),-1.)
-Pk = interpolate.InterpolatedUnivariateSpline(k_gauss,pk_gauss.real)
-#pl.figure()
-#pl.plot(k_gauss,pk_gauss)
-#pl.show()
+print dk_r[-5:-1]
+print k_r[-5:-1]
+
+krk=np.einsum('i,j',k_r,r_k)
+sinkr=np.sin(krk)
+dkkPk=dk_r*k_r*P_k
+rm1=np.power(r_k,-1.0)
+termo2=np.einsum('i,j',dkkPk,rm1)
+
+integrando=sinkr*termo2
+
+#print integrando[0:5,0:5]
+
+sig=np.power(2.0*np.pi*np.pi,-1.0)*np.sum(integrando,axis=0)
+
+#print sig[0:5]
+#print len(sig)
+#print len(r_k)
 #sys.exit(-1)
 
+#k_log = np.log(k_r)
+
+#def corr_integr(k_,r_):
+#	sig = np.sin(np.exp(k_)*r_)*np.power((np.exp(k_)*r_*2.*np.pi*np.pi),-1.)
+#	sig=np.power(2.0*np.pi*np.pi,-1.0)*np.sum(integrando,axis=0)
+#	return np.exp(3.*k_)*Pk2(k_)*sig
+#	return sig
+
+
+
+
+#def corr_log_func(k_,r_):
+#	return inte.romberg(corr_integr, np.min(k_log), np.max(k_log), args=(r_,))#, tol=1.4E-5)#, vec_func=1)
+#corr_log_vec = np.vectorize(corr_log_func)
+#corr_log = corr_log_vec(k_log,r_k)
+
+#def corr_log(k_,r_):
+#	corr_log1 = np.zeros_like(r_)
+#	for i in range(len(r_)):
+#		corr_log1[i] = corr_log_func(k_,r_[i])
+#	return corr_log1
+
+
+pl.figure("bla")
+pl.plot(r_k, r_k*r_k*sig)
+pl.show()
+sys.exit(-1)
+
+corr_g = np.log(1.+sig)
+pk_gauss = np.fft.fft(corr_g)
+"""
+#k_gauss = np.arange(0.,len(P_k))*2.*np.pi*np.power(len(P_k),-1.)
+Pk = interpolate.InterpolatedUnivariateSpline(k_gauss,pk_gauss)
+pl.figure("aids")
+pl.plot(k_r,pk_gauss.real)
+pl.figure("2")
+pl.plot(k_r,Pk(k_r))
+
+pl.show()
+sys.exit(-1)
+"""
 p_matrix =np.asarray([[[ Pk(k.matrix[i][j][n]) for i in range(len(k.k_x))] for j in range(len(k.k_y))] for n in range(len(k.k_z))])
 
 def A_k(P_):
@@ -92,7 +150,7 @@ print "Lado da celula: " + str(np.power(volume,1./3)/len(delta_xr)) + " Mpc"	#pa
 print "<delta_r^2> REAL = " + str(np.std(delta_xr))				#deve ser aprox. 0.9
 print "<delta_r^2> IMAG = " + str(np.std(delta_xi))				#deve ser aprox. 0.9
 print "k_max da matriz de k: " + str(np.max(k.matrix))
-#sys.exit(-1)
+sys.exit(-1)
 print "################################################################"
 
 ######################### Procurando P(k) ###############################
