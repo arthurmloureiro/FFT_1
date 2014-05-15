@@ -3,13 +3,13 @@
 """
 	
 	v0.8 - Plota tanto os k's quanto a matriz dos delta_x
-	v0.9 - Usa valores do CAMB em P(k) e interpola eles -----PROBLEMA: Preciso transformar o meu grid em
-		valores físicos
+	v0.9 - Usa valores do CAMB em P(k) e interpola eles 
 	v1.0 - é feita uma DFT em N dimensões, problemas quanto a normalização e unidades físicas
 	v1.5 - A normalização está quase correta
 	v2.0 - Faltava normalizar por sqrt(2) ou trocar 2*P(k) por P(k) na dist. Gaussiana
 	v2.5 - Organiza os d_k em bins e estima o P(k)
-   	v2.7 - Tenta fazer um campo lognormal ----- FALHANDO MISERAVELMENTE 
+   	v2.7 - Tenta fazer um campo lognormal 
+   	v2.9 - Tudo funcionando perfeitamente pronto para implementar distr de galaxias
 	Arthur E. da Mota Loureiro
 		12/12/2013
 """
@@ -30,82 +30,66 @@ d_x = lado ; d_y = lado ; d_z = lado				        #volume da celula em x,y,z em Mp
 l_x = d_x*N_x ; l_y = d_y*N_y ; l_z = d_z*N_z			        #Tamanho da caixa em Mpc em x,y,z
 #########################################################################
 k_r , P_k = np.loadtxt('fid_matterpower.dat', unpack=True)	        #pega o P(k) do CAMB
-#k_r = np.insert(k_r,0,0.)						#insere P(k=0) = 0 antes de interpolar
-#P_k = np.insert(P_k,0,0.)						#mesma coisa que acima
+k_r = np.insert(k_r,0,0.)						#insere P(k=0) = 0 antes de interpolar
+P_k = np.insert(P_k,0,0.)						#mesma coisa que acima
 
 k = gr.grid3d(N_x,N_y,N_z,l_x,l_y,l_z)					#cria o grid com qualquer tamanho em 3D
 volume = l_x*l_y*l_z							
-Pk2 = interpolate.InterpolatedUnivariateSpline(k_r,P_k)		        #interpola os dados do CAMB
-#r_k = 2.*np.pi*np.power(np.linspace(np.min(k_r),np.max(k_r), len(k_r)),-1.)
+Pk = interpolate.InterpolatedUnivariateSpline(k_r,P_k)		        #interpola os dados do CAMB
+"""
+achando a funcao de correlacao
+"""
 r_k=1.0*np.linspace(0.5,200.5,201)
 dk_r=np.diff(k_r)
 dk_r=np.append(dk_r,[0.0])
-
-print dk_r[-5:-1]
-print k_r[-5:-1]
-
+#print dk_r[-5:-1]
+#print k_r[-5:-1]
 krk=np.einsum('i,j',k_r,r_k)
 sinkr=np.sin(krk)
-dkkPk=dk_r*k_r*P_k
+dkkPk=dk_r*k_r*P_k*np.exp(-1.0*np.power(k_r/0.8,6.0))
 rm1=np.power(r_k,-1.0)
 termo2=np.einsum('i,j',dkkPk,rm1)
 
 integrando=sinkr*termo2
 
-#print integrando[0:5,0:5]
+corr_ln=np.power(2.0*np.pi*np.pi,-1.0)*np.sum(integrando,axis=0)
 
-sig=np.power(2.0*np.pi*np.pi,-1.0)*np.sum(integrando,axis=0)
 
-#print sig[0:5]
-#print len(sig)
-#print len(r_k)
+#pl.figure("bla")
+#pl.plot(r_k, r_k*r_k*corr_ln)
+#pl.show()
+
+corr_g = np.log(1.+corr_ln)
+"""
+Achando o espectro gaussiano
+"""
+dr = np.diff(r_k)
+dr = np.append(dr,[0.0])
+rkr = np.einsum('i,j', r_k,k_r)
+sinrk2 = np.sin(rkr)
+drCorr = dr*r_k*corr_g
+km1 = np.power(k_r,-1.)
+terms = np.einsum('i,j', drCorr,km1)
+integrando2 = sinrk2*terms
+
+P_k_gauss = 4.0*np.pi*np.sum(integrando2, axis=0)
+#P_k_gauss = np.insert(P_k_gauss,0,0.)
+#pl.figure()
+#pl.loglog()
+#pl.plot(k_r,P_k, label = "original")
+#pl.plot(k_r, P_k_gauss, label = "gaussiano")
+#pl.show()
 #sys.exit(-1)
+P_k_gauss[0] = 0.0
 
-#k_log = np.log(k_r)
-
-#def corr_integr(k_,r_):
-#	sig = np.sin(np.exp(k_)*r_)*np.power((np.exp(k_)*r_*2.*np.pi*np.pi),-1.)
-#	sig=np.power(2.0*np.pi*np.pi,-1.0)*np.sum(integrando,axis=0)
-#	return np.exp(3.*k_)*Pk2(k_)*sig
-#	return sig
+Pkg = interpolate.InterpolatedUnivariateSpline(k_r,P_k_gauss)		        #interpola os dados do CAMB
 
 
-
-
-#def corr_log_func(k_,r_):
-#	return inte.romberg(corr_integr, np.min(k_log), np.max(k_log), args=(r_,))#, tol=1.4E-5)#, vec_func=1)
-#corr_log_vec = np.vectorize(corr_log_func)
-#corr_log = corr_log_vec(k_log,r_k)
-
-#def corr_log(k_,r_):
-#	corr_log1 = np.zeros_like(r_)
-#	for i in range(len(r_)):
-#		corr_log1[i] = corr_log_func(k_,r_[i])
-#	return corr_log1
-
-
-pl.figure("bla")
-pl.plot(r_k, r_k*r_k*sig)
-pl.show()
-sys.exit(-1)
-
-corr_g = np.log(1.+sig)
-pk_gauss = np.fft.fft(corr_g)
-"""
-#k_gauss = np.arange(0.,len(P_k))*2.*np.pi*np.power(len(P_k),-1.)
-Pk = interpolate.InterpolatedUnivariateSpline(k_gauss,pk_gauss)
-pl.figure("aids")
-pl.plot(k_r,pk_gauss.real)
-pl.figure("2")
-pl.plot(k_r,Pk(k_r))
-
-pl.show()
-sys.exit(-1)
-"""
-p_matrix =np.asarray([[[ Pk(k.matrix[i][j][n]) for i in range(len(k.k_x))] for j in range(len(k.k_y))] for n in range(len(k.k_z))])
+p_matrix =np.asarray([[[ Pkg(k.matrix[i][j][n]) for i in range(len(k.k_x))] for j in range(len(k.k_y))] for n in range(len(k.k_z))])
 
 def A_k(P_):
 	return np.random.normal(0.0,np.sqrt(2.*P_*volume))		#dist gaussiana media no zero E DESVIO SQRT(P_k)
+#	return np.random.normal(0.0,np.sqrt(1.*P_*volume))		#dist gaussiana media no zero E DESVIO SQRT(P_k)
 								        # Tiramos o fator de 2, deu certo! 
 								        #incluído volume para fechar as unidades 
 def phi_k(P_): 
@@ -114,8 +98,8 @@ def phi_k(P_):
 def delta_k_g(P_):							
 	return A_k(P_)*np.exp(1j*phi_k(P_))			        #contraste de densidade em k
 	
-def delta_k_ln(d_,P_):
-	return np.exp(d_ - (P_/2.)*volume) -1.
+def delta_x_ln(d_,sigma_):
+	return np.exp(d_ - (sigma_)/2.0) -1.
 """
 			ORGANIZANDO EM BINS
 """
@@ -126,16 +110,30 @@ def heav(x):							#funcao heaviside
 heav_vec = np.vectorize(heav)					         #heaviside vetorizada
 n_bins = 50
 k_bar = np.arange(0,n_bins,1)*(np.max(k.matrix)/n_bins)
-#k_bar = np.append(k_bar,k_bar[0],len(k_bar))
+
 M = np.asarray([heav_vec(k_bar[a+1]-k.matrix[:,:,:])*heav_vec(k.matrix[:,:,:]-k_bar[a])for a in range(len(k_bar)-1)])
 
 ############################# FFT #######################################
-delta_x_g = ((delta_k_g(p_matrix).size)/volume)*np.fft.ifftn(delta_k_g(p_matrix))
+delta_x_gaus = ((delta_k_g(p_matrix).size)/volume)*np.fft.ifftn(delta_k_g(p_matrix))
+var_gr = np.var(delta_x_gaus.real)
+var_gi = np.var(delta_x_gaus.imag)
 #print "Campo complexo: " + str(delta_x[1,2,3])  
-delta_xr_g = delta_x_g.real
-delta_xi_g = delta_x_g.imag
-delta_xr = delta_k_ln(delta_xr_g, p_matrix)
-delta_xi = delta_k_ln(delta_xi_g, p_matrix)
+delta_xr_g = delta_x_gaus.real
+delta_xi_g = delta_x_gaus.imag
+delta_xr = delta_x_ln(delta_xr_g, var_gr)
+delta_xi = delta_x_ln(delta_xi_g, var_gi)
+
+print np.mean(np.ravel(delta_xr))
+print np.mean(np.ravel(delta_xi))
+
+print np.var(np.ravel(delta_xr))
+print np.var(np.ravel(delta_xi))
+
+print var_gr
+print var_gi
+
+#sys.exit(-1)
+
 #print "Parte real: " + str(delta_xr[1,2,3])  + " e parte imaginaria: " + str(delta_xi[1,2,3])
 #########################################################################
 
@@ -150,7 +148,7 @@ print "Lado da celula: " + str(np.power(volume,1./3)/len(delta_xr)) + " Mpc"	#pa
 print "<delta_r^2> REAL = " + str(np.std(delta_xr))				#deve ser aprox. 0.9
 print "<delta_r^2> IMAG = " + str(np.std(delta_xi))				#deve ser aprox. 0.9
 print "k_max da matriz de k: " + str(np.max(k.matrix))
-sys.exit(-1)
+#sys.exit(-1)
 print "################################################################"
 
 ######################### Procurando P(k) ###############################
@@ -166,18 +164,20 @@ k.plot
 pl.colorbar()								            #plota a matriz dos k's
 pl.figure("P(k)")							                            #plotando o espectro original
 pl.grid(1)
-#pl.loglog()
-pl.yscale("log")
+pl.loglog()
+#pl.yscale("log")
 pl.xlabel("k")
 pl.ylabel('P(k)')
 pl.plot(k_r[1:], P_k[1:], label="CAMB")						            #DADOS
-pl.plot(k_r[1:], Pk(k_r)[1:], label="Gaussiano interpolado")				  #INTERPOLADO
+#pl.plot(k_r[1:], Pk(k_r)[1:], label="Gaussiano interpolado")				  #INTERPOLADO
 #pl.plot(P_a, label="1")
 #sys.exit(-1)
 #kkk = np.arange(0,len(P_a2),1)*(2*np.pi*np.power(l_x,-1.))
-kkk = np.arange(0,len(P_a2.real),1)*(np.max(k.matrix)/n_bins)
-Pa_interp = interpolate.InterpolatedUnivariateSpline(kkk,P_a2.real)	
-pl.plot(kkk,Pa_interp(kkk), color="k", label="Estimado")				#ESTIMADO
+
+#kkk = np.arange(0,len(P_a2.real),1)*(np.max(k.matrix)/n_bins)
+#Pa_interp = interpolate.InterpolatedUnivariateSpline(kkk,P_a2.real)	
+
+pl.plot(k_bar[1:],P_a2, color="k", label="Estimado")				#ESTIMADO
 legend = pl.legend(loc=0, shadow=True)
 frame = legend.get_frame()
 frame.set_facecolor('0.90')
@@ -185,7 +185,7 @@ pl.axvline(x=np.max(k.matrix), linewidth=2., color='r')
 
 pl.figure("Mapa")
 pl.title("$\delta(x)_{i,0,k}$")
-pl.imshow(delta_xr[:,0,:], cmap=cm.BuPu)
+pl.imshow(delta_xr[:,24,:], cmap=cm.jet)
 pl.colorbar()
 pl.grid(1)
 pl.title('Fatia do $\delta_x$ gerado apos a ifft de $\delta_k$ com $P(k)$')
