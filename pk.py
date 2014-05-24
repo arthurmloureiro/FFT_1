@@ -21,6 +21,7 @@ import scipy.integrate as inte
 from mpl_toolkits.mplot3d.axes3d import Axes3D
 from matplotlib import cm
 from scipy import interpolate
+from scipy.optimize import curve_fit
 
 
 lado = 10.0                                                             # em Mpc
@@ -28,6 +29,9 @@ lado = 10.0                                                             # em Mpc
 N_x = 81 ; N_y = 81 ; N_z = 81						#Numero de celulas em x,y,z
 d_x = lado ; d_y = lado ; d_z = lado				        #volume da celula em x,y,z em Mpc
 l_x = d_x*N_x ; l_y = d_y*N_y ; l_z = d_z*N_z			        #Tamanho da caixa em Mpc em x,y,z
+n_bar = 2.0 								# densidade de galaxias na celula
+N_bar = n_bar*d_x*d_y*d_z						
+bias = 1.0	
 #########################################################################
 k_r , P_k = np.loadtxt('fid_matterpower.dat', unpack=True)	        #pega o P(k) do CAMB
 k_r = np.insert(k_r,0,0.)						#insere P(k=0) = 0 antes de interpolar
@@ -37,10 +41,10 @@ k = gr.grid3d(N_x,N_y,N_z,l_x,l_y,l_z)					#cria o grid com qualquer tamanho em 
 volume = l_x*l_y*l_z							
 Pk = interpolate.InterpolatedUnivariateSpline(k_r,P_k)		        #interpola os dados do CAMB
 """
-achando a funcao de correlacao
+                                achando a funcao de correlacao
 """
-r_k=1.0*np.linspace(0.5,200.5,201)
-dk_r=np.diff(k_r)
+r_k=1.0*np.linspace(0.5,200.5,201)                          # r vai de 0.5 MPc ate 201 MPc
+dk_r=np.diff(k_r)                                           #faz a diferenca entre k e k+dk
 dk_r=np.append(dk_r,[0.0])
 #print dk_r[-5:-1]
 #print k_r[-5:-1]
@@ -52,7 +56,7 @@ termo2=np.einsum('i,j',dkkPk,rm1)
 
 integrando=sinkr*termo2
 
-corr_ln=np.power(2.0*np.pi*np.pi,-1.0)*np.sum(integrando,axis=0)
+corr_ln=np.power(2.0*np.pi*np.pi,-1.0)*np.sum(integrando,axis=0)        #tira o traco no eixo r realizando a integral
 
 
 #pl.figure("bla")
@@ -61,7 +65,7 @@ corr_ln=np.power(2.0*np.pi*np.pi,-1.0)*np.sum(integrando,axis=0)
 
 corr_g = np.log(1.+corr_ln)
 """
-Achando o espectro gaussiano
+                                Achando o espectro gaussiano
 """
 dr = np.diff(r_k)
 dr = np.append(dr,[0.0])
@@ -82,10 +86,11 @@ P_k_gauss = 4.0*np.pi*np.sum(integrando2, axis=0)
 #sys.exit(-1)
 P_k_gauss[0] = 0.0
 
-Pkg = interpolate.InterpolatedUnivariateSpline(k_r,P_k_gauss)		        #interpola os dados do CAMB
-
-
-p_matrix =np.asarray([[[ Pkg(k.matrix[i][j][n]) for i in range(len(k.k_x))] for j in range(len(k.k_y))] for n in range(len(k.k_z))])
+Pkg = interpolate.InterpolatedUnivariateSpline(k_r,P_k_gauss)		        #interpola o espectro gaussiano
+Pkg_vec = np.vectorize(Pkg)
+p_matrix = Pkg_vec(k.matrix)
+#p_matrix =np.asarray([[[ Pkg(k.matrix[i][j][n]) for i in range(len(k.k_x))] for j in range(len(k.k_y))] for n in range(len(k.k_z))])
+p_matrix[0][0][0] = 1.
 
 def A_k(P_):
 	return np.random.normal(0.0,np.sqrt(2.*P_*volume))		#dist gaussiana media no zero E DESVIO SQRT(P_k)
@@ -99,9 +104,9 @@ def delta_k_g(P_):
 	return A_k(P_)*np.exp(1j*phi_k(P_))			        #contraste de densidade em k
 	
 def delta_x_ln(d_,sigma_):
-	return np.exp(d_ - (sigma_)/2.0) -1.
+	return np.exp(bias*d_ - ((bias**2.)*(sigma_))/2.0) -1.
 """
-			ORGANIZANDO EM BINS
+			             ORGANIZANDO EM BINS
 """
 def heav(x):							#funcao heaviside
 	if x==0:
@@ -111,9 +116,10 @@ heav_vec = np.vectorize(heav)					         #heaviside vetorizada
 n_bins = 50
 k_bar = np.arange(0,n_bins,1)*(np.max(k.matrix)/n_bins)
 
-M = np.asarray([heav_vec(k_bar[a+1]-k.matrix[:,:,:])*heav_vec(k.matrix[:,:,:]-k_bar[a])for a in range(len(k_bar)-1)])
-
-############################# FFT #######################################
+M = np.asarray([heav_vec(k_bar[a+1]-k.matrix[:,:,:])*heav_vec(k.matrix[:,:,:]-k_bar[a])for a in range(len(k_bar)-1)]) 
+"""
+                                    FFT
+"""
 delta_x_gaus = ((delta_k_g(p_matrix).size)/volume)*np.fft.ifftn(delta_k_g(p_matrix))
 var_gr = np.var(delta_x_gaus.real)
 var_gi = np.var(delta_x_gaus.imag)
@@ -123,20 +129,43 @@ delta_xi_g = delta_x_gaus.imag
 delta_xr = delta_x_ln(delta_xr_g, var_gr)
 delta_xi = delta_x_ln(delta_xi_g, var_gi)
 
-print np.mean(np.ravel(delta_xr))
-print np.mean(np.ravel(delta_xi))
+#print np.mean(np.ravel(delta_xr))
+#print np.mean(np.ravel(delta_xi))
 
-print np.var(np.ravel(delta_xr))
-print np.var(np.ravel(delta_xi))
+#print np.var(np.ravel(delta_xr))
+#print np.var(np.ravel(delta_xi))
 
-print var_gr
-print var_gi
+#print var_gr
+#print var_gi
 
 #sys.exit(-1)
+"""
+                                Procurando P(k) 
+"""
+d_k = (volume/(N_x*N_y*N_z))*np.fft.fftn(delta_xr)			       	   # ifft de d_x.real
+#P_a = np.einsum("aijl,ijl,ijl->a", M, d_k,np.conj(d_k))/volume
+P_a2 = np.einsum("aijl,ijl,ijl->a", M, d_k, np.conj(d_k))/(np.einsum("aijl->a", M)*volume)
+	#esta normalização parece ser a correta!
+"""
+                Distr. Poissonica para numero de particulas e calculando espectro de galaxias
+"""
+N_r = np.random.poisson(N_bar*(1.+delta_xr))
+delta_gg_r = (N_r - N_bar)/N_bar
+delta_gg_k = (volume/(N_x*N_y*N_y))*np.fft.fftn(delta_gg_r)
 
+P_gg = np.einsum("aijl,ijl,ijl->a", M, delta_gg_k, np.conj(delta_gg_k))/(np.einsum("aijl->a", M)*volume)
+
+#sys.exit(-1)
 #print "Parte real: " + str(delta_xr[1,2,3])  + " e parte imaginaria: " + str(delta_xi[1,2,3])
 #########################################################################
 
+def fit_params(x,a,b):
+    return np.power(a,2.)*x + np.power(b,-1.) 
+params = curve_fit(fit_params, Pk(k_bar[1:]), P_gg.real)
+[a,b] = params[0]
+print a
+print b
+sys.exit(-1)
 print "################################################################"
 print "                           DADOS                                "
 print "################################################################"
@@ -151,17 +180,12 @@ print "k_max da matriz de k: " + str(np.max(k.matrix))
 #sys.exit(-1)
 print "################################################################"
 
-######################### Procurando P(k) ###############################
-d_k = (volume/(N_x*N_y*N_z))*np.fft.fftn(delta_xr)			       	   # ifft de d_x.real
-#P_a = np.einsum("aijl,ijl,ijl->a", M, d_k,np.conj(d_k))/volume
-P_a2 = np.einsum("aijl,ijl,ijl->a", M, d_k, np.conj(d_k))/(np.einsum("aijl->a", M)*volume)
-	#esta normalização parece ser a correta!
-#########################################################################
 """
-				PLOTS
+				                PLOTS
 """
 k.plot	
 pl.colorbar()								            #plota a matriz dos k's
+
 pl.figure("P(k)")							                            #plotando o espectro original
 pl.grid(1)
 pl.loglog()
@@ -169,15 +193,8 @@ pl.loglog()
 pl.xlabel("k")
 pl.ylabel('P(k)')
 pl.plot(k_r[1:], P_k[1:], label="CAMB")						            #DADOS
-#pl.plot(k_r[1:], Pk(k_r)[1:], label="Gaussiano interpolado")				  #INTERPOLADO
-#pl.plot(P_a, label="1")
-#sys.exit(-1)
-#kkk = np.arange(0,len(P_a2),1)*(2*np.pi*np.power(l_x,-1.))
-
-#kkk = np.arange(0,len(P_a2.real),1)*(np.max(k.matrix)/n_bins)
-#Pa_interp = interpolate.InterpolatedUnivariateSpline(kkk,P_a2.real)	
-
 pl.plot(k_bar[1:],P_a2, color="k", label="Estimado")				#ESTIMADO
+pl.plot(k_bar[1:],P_gg,"*", label="Espectro de galaxias")
 legend = pl.legend(loc=0, shadow=True)
 frame = legend.get_frame()
 frame.set_facecolor('0.90')
@@ -189,10 +206,12 @@ pl.imshow(delta_xr[:,24,:], cmap=cm.jet)
 pl.colorbar()
 pl.grid(1)
 pl.title('Fatia do $\delta_x$ gerado apos a ifft de $\delta_k$ com $P(k)$')
-
+pl.show()
+"""
 pl.figure("Bins de K")
 numb_bin =np.random.random_integers(0,n_bins-1)
 pl.title("Mostrando bin numero " + str(numb_bin) + " de " + str(n_bins))
 pl.imshow(M[numb_bin,0,:,:])
 pl.colorbar()
 pl.show()
+"""
