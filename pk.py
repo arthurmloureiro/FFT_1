@@ -10,7 +10,7 @@
 	v2.5 - Organiza os d_k em bins e estima o P(k)
    	v2.7 - Tenta fazer um campo lognormal 
    	v2.9 - Tudo funcionando perfeitamente pronto para implementar distr de galaxias
-    v3.0 - Calcula o espectro da distr. de galáxias e estima o bias e o shot-noise
+    	v3.0 - Calcula o espectro da distr. de galáxias e estima o bias e o shot-noise
 	Arthur E. da Mota Loureiro
 		12/12/2013
 """
@@ -34,7 +34,7 @@ volume = l_x*l_y*l_z
 dV = (volume/(N_x*N_y*N_z))
 n_bar = 2.0 								# densidade de galaxias na celula
 N_bar = n_bar*volume				
-bias = 1.3	
+bias = 1.0	
 #########################################################################
 k_r , P_k = np.loadtxt('fid_matterpower.dat', unpack=True)	        #pega o P(k) do CAMB
 k_r = np.insert(k_r,0,0.)						#insere P(k=0) = 0 antes de interpolar
@@ -48,8 +48,7 @@ Pk = interpolate.InterpolatedUnivariateSpline(k_r,P_k)		        #interpola os da
 r_k=1.0*np.linspace(0.5,200.5,201)                          # r vai de 0.5 MPc ate 201 MPc
 dk_r=np.diff(k_r)                                           #faz a diferenca entre k e k+dk
 dk_r=np.append(dk_r,[0.0])
-#print dk_r[-5:-1]
-#print k_r[-5:-1]
+
 krk=np.einsum('i,j',k_r,r_k)
 sinkr=np.sin(krk)
 dkkPk=dk_r*k_r*P_k*np.exp(-1.0*np.power(k_r/0.8,6.0))
@@ -61,9 +60,6 @@ integrando=sinkr*termo2
 corr_ln=np.power(2.0*np.pi*np.pi,-1.0)*np.sum(integrando,axis=0)        #tira o traco no eixo r realizando a integral
 
 
-#pl.figure("bla")
-#pl.plot(r_k, r_k*r_k*corr_ln)
-#pl.show()
 
 corr_g = np.log(1.+corr_ln)
 """
@@ -79,25 +75,18 @@ terms = np.einsum('i,j', drCorr,km1)
 integrando2 = sinrk2*terms
 
 P_k_gauss = 4.0*np.pi*np.sum(integrando2, axis=0)
-#P_k_gauss = np.insert(P_k_gauss,0,0.)
-#pl.figure()
-#pl.loglog()
-#pl.plot(k_r,P_k, label = "original")
-#pl.plot(k_r, P_k_gauss, label = "gaussiano")
-#pl.show()
-#sys.exit(-1)
+
 P_k_gauss[0] = 0.0
 
 Pkg = interpolate.InterpolatedUnivariateSpline(k_r,P_k_gauss)		        #interpola o espectro gaussiano
 Pkg_vec = np.vectorize(Pkg)
 p_matrix = Pkg_vec(k.matrix)
-#p_matrix =np.asarray([[[ Pkg(k.matrix[i][j][n]) for i in range(len(k.k_x))] for j in range(len(k.k_y))] for n in range(len(k.k_z))])
+
 p_matrix[0][0][0] = 1.
 
 def A_k(P_):
 	return np.random.normal(0.0,np.sqrt(2.*P_*volume))		#dist gaussiana media no zero E DESVIO SQRT(P_k)
-#	return np.random.normal(0.0,np.sqrt(1.*P_*volume))		#dist gaussiana media no zero E DESVIO SQRT(P_k)
-								        # Tiramos o fator de 2, deu certo! 
+
 								        #incluído volume para fechar as unidades 
 def phi_k(P_): 
 	return (np.random.random(len(P_)))*2.*np.pi		        #segundo Padmanabhan pg 191 ===> É A MESMA COISA
@@ -131,62 +120,27 @@ delta_xi_g = delta_x_gaus.imag
 delta_xr = delta_x_ln(delta_xr_g, var_gr)
 delta_xi = delta_x_ln(delta_xi_g, var_gi)
 
-#print np.mean(np.ravel(delta_xr))
-#print np.mean(np.ravel(delta_xi))
-
-#print np.var(np.ravel(delta_xr))
-#print np.var(np.ravel(delta_xi))
-
-#print var_gr
-#print var_gi
-
-#sys.exit(-1)
 """
                                 Procurando P(k) 
 """
 d_k = (volume/(N_x*N_y*N_z))*np.fft.fftn(delta_xr)			       	   # ifft de d_x.real
-#P_a = np.einsum("aijl,ijl,ijl->a", M, d_k,np.conj(d_k))/volume
 P_a2 = np.einsum("aijl,ijl,ijl->a", M, d_k, np.conj(d_k))/(np.einsum("aijl->a", M)*volume)
 	#esta normalização parece ser a correta!
 """
                 Distr. Poissonica para numero de particulas e calculando espectro de galaxias
 """
-N_r = np.random.poisson(n_bar*(1.+delta_xr))
-delta_gg_r = (N_r - np.mean(N_r))/np.mean(N_r)
-delta_gg_k = (volume/(N_x*N_y*N_y))*np.fft.fftn(delta_gg_r)
+realiz = 500							#numero de realizacoes
+PN = np.zeros((len(k_bar[1:]), realiz))				
+for i in range(realiz):
+	N_r = np.random.poisson(n_bar*(1.+delta_xr))
+	delta_gg_r = (N_r - np.mean(N_r))/np.mean(N_r)
+	delta_gg_k = (volume/(N_x*N_y*N_y))*np.fft.fftn(delta_gg_r)
 
-P_gg = np.einsum("aijl,ijl,ijl->a", M, delta_gg_k, np.conj(delta_gg_k))/(np.einsum("aijl->a", M)*volume)
+	P_gg = np.einsum("aijl,ijl,ijl->a", M, delta_gg_k, np.conj(delta_gg_k))/(np.einsum("aijl->a", M)*volume)
+	PN[:,i] = P_gg.real 					#linhas = dif k's ; colunas = dif mapas
 
-#sys.exit(-1)
-#print "Parte real: " + str(delta_xr[1,2,3])  + " e parte imaginaria: " + str(delta_xi[1,2,3])
-#########################################################################
 
-def f(x,a,b):
-    return np.power(a,2.)*x + b
-#params = curve_fit(fit_params, Pk(k_bar[1:]), P_gg.real, p0=[1.,1/n_bar])
-params = curve_fit(f, P_gg.real, P_a2.real, p0=[1., -dV/n_bar])
-[bias_est, s_n_est] = params[0]
-print "Bias => " + str(bias_est)
-print "Shot-noise => " + str(s_n_est)
-perr = np.sqrt(np.diag(params[1]))
-print perr
-#Pgg_params = (bias_est**2.)*Pk(k_bar[1:])+s_n_est                                    #espectro de galaxias com os parametros estimados
-#Pgg_params = (bias_est**2.)*P_gg.real+s_n_est
-
-#sys.exit(-1)
-print "################################################################"
-print "                           DADOS                                "
-print "################################################################"
-print "Lx: " + str(l_x) + " Mpc // Ly: " + str(l_y) + " Mpc // Lz: " + str(l_z) + " Mpc"
-print "Lado depois das contas: " + str((np.power(delta_xr.size,1./3))) 		#Não faz sentido se não é um cubo
-print "Volume total: " + str(volume) + " Mpc^3"
-print "Numero de celulas de delta_x: " + str(len(delta_xr))
-print "Lado da celula: " + str(np.power(volume,1./3)/len(delta_xr)) + " Mpc"	#para /\x = 10. Mpc
-print "<delta_r^2> REAL = " + str(np.std(delta_xr))				#deve ser aprox. 0.9
-print "<delta_r^2> IMAG = " + str(np.std(delta_xi))				#deve ser aprox. 0.9
-print "k_max da matriz de k: " + str(np.max(k.matrix))
-#sys.exit(-1)
-print "################################################################"
+sys.exit(-1)
 
 """
 				                PLOTS
@@ -203,7 +157,7 @@ pl.ylabel('P(k)')
 pl.plot(k_r[1:], P_k[1:], label="CAMB")						            #DADOS
 pl.plot(k_bar[1:],P_a2, color="k", label="Estimado")				#ESTIMADO
 pl.plot(k_bar[1:],P_gg.real,"*", label="Espectro de galaxias")
-pl.plot(k_bar[1:], (P_gg.real/(bias**2.) - dV/n_bar), "^", label="$P_g/b^2 - dV/n$")
+pl.plot(k_bar[1:], (P_gg.real/(bias**2.) - dV/n_bar), "^", label=r"$P_g(k)/b^2 - dV/\bar{n}$")
 legend = pl.legend(loc=0, shadow=True)
 frame = legend.get_frame()
 frame.set_facecolor('0.90')
