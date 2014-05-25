@@ -112,7 +112,48 @@ M = np.asarray([heav_vec(k_bar[a+1]-k.matrix[:,:,:])*heav_vec(k.matrix[:,:,:]-k_
 """
                                     FFT
 """
-PN = np.zeros((len(k_bar[1:]), realiz))				
+PN_gauss = np.loadtxt("gauss500.dat")
+PN_poiss = np.loadtxt("poisson500.dat")
+P_bla_gauss = np.zeros(49)
+P_bla_poiss = np.zeros(49)
+err_gauss = np.zeros(49)
+err_poiss = np.zeros(49)
+bias_esti_gauss1 = np.zeros(realiz)
+bias_esti_poiss1 = np.zeros(realiz)
+
+for i in range(realiz): 
+	bias_esti_gauss1[i] = np.mean((PN_gauss[:,i] - (dV/n_bar + 50))/Pk(k_bar[1:]))
+	bias_esti_poiss1[i] = np.mean((PN_poiss[:,i] - (dV/n_bar + 50))/Pk(k_bar[1:]))
+b_gauss = np.mean(bias_esti_gauss1)
+b_poiss = np.mean(bias_esti_poiss1)
+pl.figure()
+#pl.yscale("log")
+for i in range(realiz):
+	pl.plot(k_bar[1:], ((PN_gauss[:,i]-(dV/n_bar + 50) )/b_gauss)/Pk(k_bar[1:]), "*")
+#pl.plot(k_r,P_k)
+pl.figure()
+#pl.yscale("log")
+for i in range(realiz):
+	pl.plot(k_bar[1:], ((PN_poiss[:,i]-(dV/n_bar + 50) )/b_poiss)/Pk(k_bar[1:]), "o")
+#pl.plot(k_r,P_k)
+for i in range(49):
+	P_bla_gauss[i] = (np.mean((PN_gauss[i,:] - dV/n_bar)/b_gauss) - Pk(k_bar[1:])[i])/Pk(k_bar[1:])[i]
+	P_bla_poiss[i] = (np.mean((PN_poiss[i,:] - dV/n_bar)/b_poiss) - Pk(k_bar[1:])[i])/Pk(k_bar[1:])[i]
+	err_gauss[i] = np.std(PN_gauss[i,:])/np.mean(PN_gauss[i,:])
+	err_poiss[i] = np.std(PN_poiss[i,:])/np.mean(PN_poiss[i,:])
+
+pl.figure()
+pl.title("Erros")
+pl.ylabel("$((<P_g(k)-SN)/b^2> - P_{camb}(k)/P_{camb}(k)$")
+pl.xlabel("$k$")
+pl.errorbar(k_bar[1:],(P_bla_gauss-P_bla_gauss), yerr=err_gauss, label="Gauss + Poiss")
+pl.errorbar(k_bar[1:],(P_bla_poiss-P_bla_poiss), yerr=err_poiss, label="Poiss")
+legend = pl.legend(loc=0, shadow=True)
+frame = legend.get_frame()
+frame.set_facecolor('0.90')
+pl.show()
+sys.exit(-1)			
+PN = np.zeros((len(k_bar[1:]), realiz))	
 for i in range(realiz):
 	delta_x_gaus = ((delta_k_g(p_matrix).size)/volume)*np.fft.ifftn(delta_k_g(p_matrix))
 	var_gr = np.var(delta_x_gaus.real)
