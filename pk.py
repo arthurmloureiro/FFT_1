@@ -36,6 +36,7 @@ n_bar = 2.0 								# densidade de galaxias na celula
 N_bar = n_bar*volume				
 bias = 1.0	
 #########################################################################
+realiz = 500							#numero de realizacoes
 k_r , P_k = np.loadtxt('fid_matterpower.dat', unpack=True)	        #pega o P(k) do CAMB
 k_r = np.insert(k_r,0,0.)						#insere P(k=0) = 0 antes de interpolar
 P_k = np.insert(P_k,0,0.)						#mesma coisa que acima
@@ -111,31 +112,20 @@ M = np.asarray([heav_vec(k_bar[a+1]-k.matrix[:,:,:])*heav_vec(k.matrix[:,:,:]-k_
 """
                                     FFT
 """
-delta_x_gaus = ((delta_k_g(p_matrix).size)/volume)*np.fft.ifftn(delta_k_g(p_matrix))
-var_gr = np.var(delta_x_gaus.real)
-var_gi = np.var(delta_x_gaus.imag)
-#print "Campo complexo: " + str(delta_x[1,2,3])  
-delta_xr_g = delta_x_gaus.real
-delta_xi_g = delta_x_gaus.imag
-delta_xr = delta_x_ln(delta_xr_g, var_gr)
-delta_xi = delta_x_ln(delta_xi_g, var_gi)
-
-"""
-                                Procurando P(k) 
-"""
-d_k = (volume/(N_x*N_y*N_z))*np.fft.fftn(delta_xr)			       	   # ifft de d_x.real
-P_a2 = np.einsum("aijl,ijl,ijl->a", M, d_k, np.conj(d_k))/(np.einsum("aijl->a", M)*volume)
-	#esta normalização parece ser a correta!
-"""
-                Distr. Poissonica para numero de particulas e calculando espectro de galaxias
-"""
-realiz = 500							#numero de realizacoes
 PN = np.zeros((len(k_bar[1:]), realiz))				
 for i in range(realiz):
+	delta_x_gaus = ((delta_k_g(p_matrix).size)/volume)*np.fft.ifftn(delta_k_g(p_matrix))
+	var_gr = np.var(delta_x_gaus.real)
+	var_gi = np.var(delta_x_gaus.imag)
+	delta_xr_g = delta_x_gaus.real
+	delta_xi_g = delta_x_gaus.imag
+	delta_xr = delta_x_ln(delta_xr_g, var_gr)
+	delta_xi = delta_x_ln(delta_xi_g, var_gi)
+	d_k = (volume/(N_x*N_y*N_z))*np.fft.fftn(delta_xr)			       	   # ifft de d_x.real
+	P_a2 = np.einsum("aijl,ijl,ijl->a", M, d_k, np.conj(d_k))/(np.einsum("aijl->a", M)*volume)
 	N_r = np.random.poisson(n_bar*(1.+delta_xr))
 	delta_gg_r = (N_r - np.mean(N_r))/np.mean(N_r)
 	delta_gg_k = (volume/(N_x*N_y*N_y))*np.fft.fftn(delta_gg_r)
-
 	P_gg = np.einsum("aijl,ijl,ijl->a", M, delta_gg_k, np.conj(delta_gg_k))/(np.einsum("aijl->a", M)*volume)
 	PN[:,i] = P_gg.real 					#linhas = dif k's ; colunas = dif mapas
 
