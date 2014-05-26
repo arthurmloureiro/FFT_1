@@ -54,11 +54,13 @@ integrando=sinkr*termo2
 
 corr_ln=np.power(2.0*np.pi*np.pi,-1.0)*np.sum(integrando,axis=0)
 
-
-#pl.figure("bla")
-#pl.plot(r_k, r_k*r_k*corr_ln)
-#pl.show()
-
+"""
+pl.figure()
+pl.grid()
+pl.plot(r_k, r_k*r_k*corr_ln, linewidth=1.5)
+pl.show()
+sys.exit(-1)
+"""
 corr_g = np.log(1.+corr_ln)
 """
 Achando o espectro gaussiano
@@ -164,11 +166,12 @@ k.plot
 pl.colorbar()								            #plota a matriz dos k's
 pl.figure("P(k)")							                            #plotando o espectro original
 pl.grid(1)
-pl.loglog()
-#pl.yscale("log")
-pl.xlabel("k")
-pl.ylabel('P(k)')
-pl.plot(k_r[1:], P_k[1:], label="CAMB")						            #DADOS
+#pl.loglog()
+pl.yscale("log")
+pl.xlabel("$k [hMpc^{-1}]$")
+pl.ylabel('$P(k)$')
+pl.plot(k_r[1:], P_k[1:], label="CAMB")		
+#pl.plot(k_r[1:], Pkg(k_r[1:]), label="$P_G(k)$")				            #DADOS
 #pl.plot(k_r[1:], Pk(k_r)[1:], label="Gaussiano interpolado")				  #INTERPOLADO
 #pl.plot(P_a, label="1")
 #sys.exit(-1)
@@ -177,22 +180,23 @@ pl.plot(k_r[1:], P_k[1:], label="CAMB")						            #DADOS
 #kkk = np.arange(0,len(P_a2.real),1)*(np.max(k.matrix)/n_bins)
 #Pa_interp = interpolate.InterpolatedUnivariateSpline(kkk,P_a2.real)	
 
-pl.plot(k_bar[1:],P_a2, color="k", label="Estimado")				#ESTIMADO
+pl.plot(k_bar[1:],P_a2, color="k", label=r"Estimated using $\delta_LN (\vec{k})$")				#ESTIMADO
 legend = pl.legend(loc=0, shadow=True)
 frame = legend.get_frame()
 frame.set_facecolor('0.90')
 pl.axvline(x=np.max(k.matrix), linewidth=2., color='r')
 
 pl.figure("Mapa")
-pl.title("$\delta(x)_{i,0,k}$")
 pl.imshow(delta_xr[:,24,:], cmap=cm.jet)
 pl.colorbar()
 pl.grid(1)
-pl.title('Fatia do $\delta_x$ gerado apos a ifft de $\delta_k$ com $P(k)$')
-
+pl.title(r'Slice of the $\delta_{LN}(\vec{x})$ map in unities of $[L_{cell}]$')
+pl.show()
+"""
 pl.figure("Bins de K")
 numb_bin =np.random.random_integers(0,n_bins-1)
 pl.title("Mostrando bin numero " + str(numb_bin) + " de " + str(n_bins))
 pl.imshow(M[numb_bin,0,:,:])
 pl.colorbar()
 pl.show()
+"""
