@@ -34,7 +34,7 @@ volume = l_x*l_y*l_z
 dV = (volume/(N_x*N_y*N_z))
 n_bar = 2.0 								# densidade de galaxias na celula
 N_bar = n_bar*volume				
-bias = 1.3	
+bias = 1.0	
 #########################################################################
 k_r , P_k = np.loadtxt('fid_matterpower.dat', unpack=True)	        #pega o P(k) do CAMB
 k_r = np.insert(k_r,0,0.)						#insere P(k=0) = 0 antes de interpolar
@@ -201,20 +201,20 @@ pl.yscale("log")
 pl.xlabel("k")
 pl.ylabel('P(k)')
 pl.plot(k_r[1:], P_k[1:], label="CAMB")						            #DADOS
-pl.plot(k_bar[1:],P_a2, color="k", label="Estimado")				#ESTIMADO
-pl.plot(k_bar[1:],P_gg.real,"*", label="Espectro de galaxias")
-pl.plot(k_bar[1:], (P_gg.real/(bias**2.) - dV/n_bar), "^", label="$P_g/b^2 - dV/n$")
+#pl.plot(k_bar[1:],P_a2, color="k", label="Estimado")				#ESTIMADO
+pl.plot(k_bar[1:],P_gg.real,"*", label="Galaxy Power Spectrum")
+pl.plot(k_bar[1:], (P_gg.real/(bias**2.) - dV/n_bar), "^", label="$P_{gg}(k)$ without bias and SN")
 legend = pl.legend(loc=0, shadow=True)
 frame = legend.get_frame()
 frame.set_facecolor('0.90')
 pl.axvline(x=np.max(k.matrix), linewidth=2., color='r')
 
 pl.figure("Mapa")
-pl.title("$\delta(x)_{i,0,k}$")
-pl.imshow(delta_xr[:,24,:], cmap=cm.jet)
+#pl.title("$\delta(x)_{i,0,k}$")
+pl.imshow(delta_gg_r.real[:,24,:], cmap=cm.jet)
 pl.colorbar()
 pl.grid(1)
-pl.title('Fatia do $\delta_x$ gerado apos a ifft de $\delta_k$ com $P(k)$')
+pl.title(r'Slice of the $\delta_{gg}(\vec{x})$ biased map with shot-noise in cell units')
 pl.show()
 """
 pl.figure("Bins de K")
