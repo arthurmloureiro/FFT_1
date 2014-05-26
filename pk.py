@@ -38,7 +38,7 @@ Pk = interpolate.InterpolatedUnivariateSpline(k_r,P_k)			#interpola os dados do 
 p_matrix =np.asarray([[[ Pk(k.matrix[i][j][n]) for i in range(len(k.k_x))] for j in range(len(k.k_y))] for n in range(len(k.k_z))])
 
 def A_k(P_):
-	return np.random.normal(0,np.sqrt(P_*volume))			#dist gaussiana media no zero E DESVIO SQRT(P_k)
+	return np.random.normal(0,np.sqrt(2.*P_*volume))			#dist gaussiana media no zero E DESVIO SQRT(P_k)
 									# Tiramos o fator de 2, deu certo! 
 									#incluído volume para fechar as unidades 
 def phi_k(P_): 
@@ -54,7 +54,7 @@ def heav(x):								#funcao heaviside
 		return 0.5
 	return 0 if x<0 else 1
 heav_vec = np.vectorize(heav)						#heaviside vetorizada
-n_bins = 80
+n_bins = 50
 k_bar = np.arange(0,n_bins,1)*(np.max(k.matrix)/n_bins)
 #k_bar = np.append(k_bar,k_bar[0],len(k_bar))
 M = np.asarray([heav_vec(k_bar[a+1]-k.matrix[:,:,:])*heav_vec(k.matrix[:,:,:]-k_bar[a])for a in range(len(k_bar)-1)])
@@ -96,15 +96,15 @@ pl.figure("P(k)")							#plotando o espectro original
 pl.grid(1)
 #pl.loglog()
 pl.yscale("log")
-pl.xlabel("k")
-pl.ylabel('P(k)')
-pl.plot(k_r[1:], P_k[1:])						#DADOS
+pl.xlabel("k [h Mpc^{-1}]")
+pl.ylabel('P(k) [k^3]')
+#pl.plot(k_r[1:], P_k[1:], label="Extimated")						#DADOS
 pl.plot(k_r[1:], Pk(k_r)[1:], label="CAMB")						#INTERPOLADO
 #pl.plot(P_a, label="1")
 #sys.exit(-1)
 #kkk = np.arange(0,len(P_a2),1)*(2*np.pi*np.power(l_x,-1.))
 kkk = np.arange(0,len(P_a2.real),1)*(np.max(k.matrix)/n_bins)
-pl.plot(kkk,P_a2.real, color="b", label="Estimado")				#ESTIMADO
+pl.plot(kkk,P_a2.real, color="g", label="Estimated")				#ESTIMADO
 legend = pl.legend(loc=0, shadow=True)
 frame = legend.get_frame()
 frame.set_facecolor('0.90')
@@ -115,11 +115,27 @@ pl.title("$\delta(x)_{i,0,k}$")
 pl.imshow(delta_xr[:,0,:], cmap=cm.BuPu)
 pl.colorbar()
 pl.grid(1)
-pl.title('Fatia do $\delta_x$ gerado apos a ifft de $\delta_k$ com $P(k)$')
+pl.title('Slice of $\delta_x$ in unities of $[L_{cell}]$ generated after the iFFT of $\delta_k$ with $P_c(k)$')
 
-pl.figure("Bins de K")
+pl.figure("K bins")
+pl.subplot(221)
 numb_bin =np.random.random_integers(0,n_bins-1)
-pl.title("Mostrando bin numero " + str(numb_bin) + " de " + str(n_bins))
+pl.title("Showing bin number: " + str(numb_bin) + " of " + str(n_bins))
+pl.imshow(M[numb_bin,0,:,:])
+pl.colorbar()
+pl.subplot(222)
+numb_bin =np.random.random_integers(0,n_bins-1)
+pl.title("Showing bin number: " + str(numb_bin) + " of " + str(n_bins))
+pl.imshow(M[numb_bin,0,:,:])
+pl.colorbar()
+pl.subplot(223)
+numb_bin =np.random.random_integers(0,n_bins-1)
+pl.title("Showing bin number: " + str(numb_bin) + " of " + str(n_bins))
+pl.imshow(M[numb_bin,0,:,:])
+pl.colorbar()
+pl.subplot(224)
+numb_bin =np.random.random_integers(0,n_bins-1)
+pl.title("Showing bin number: " + str(numb_bin) + " of " + str(n_bins))
 pl.imshow(M[numb_bin,0,:,:])
 pl.colorbar()
 pl.show()
