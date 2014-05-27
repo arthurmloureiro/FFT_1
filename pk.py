@@ -10,6 +10,7 @@
 	v2.5 - Organiza os d_k em bins e estima o P(k)
    	v2.7 - Tenta fazer um campo lognormal 
    	v2.9 - Tudo funcionando perfeitamente pronto para implementar distr de galaxias
+    v3.0 - Calcula o espectro da distr. de galáxias e estima o bias e o shot-noise
 	Arthur E. da Mota Loureiro
 		12/12/2013
 """
@@ -29,16 +30,17 @@ lado = 10.0                                                             # em Mpc
 N_x = 81 ; N_y = 81 ; N_z = 81						#Numero de celulas em x,y,z
 d_x = lado ; d_y = lado ; d_z = lado				        #volume da celula em x,y,z em Mpc
 l_x = d_x*N_x ; l_y = d_y*N_y ; l_z = d_z*N_z			        #Tamanho da caixa em Mpc em x,y,z
+volume = l_x*l_y*l_z							
+dV = (volume/(N_x*N_y*N_z))
 n_bar = 2.0 								# densidade de galaxias na celula
-N_bar = n_bar*d_x*d_y*d_z						
-bias = 1.0	
+N_bar = n_bar*volume				
+bias = 1.3	
 #########################################################################
 k_r , P_k = np.loadtxt('fid_matterpower.dat', unpack=True)	        #pega o P(k) do CAMB
 k_r = np.insert(k_r,0,0.)						#insere P(k=0) = 0 antes de interpolar
 P_k = np.insert(P_k,0,0.)						#mesma coisa que acima
 
 k = gr.grid3d(N_x,N_y,N_z,l_x,l_y,l_z)					#cria o grid com qualquer tamanho em 3D
-volume = l_x*l_y*l_z							
 Pk = interpolate.InterpolatedUnivariateSpline(k_r,P_k)		        #interpola os dados do CAMB
 """
                                 achando a funcao de correlacao
@@ -149,8 +151,8 @@ P_a2 = np.einsum("aijl,ijl,ijl->a", M, d_k, np.conj(d_k))/(np.einsum("aijl->a", 
 """
                 Distr. Poissonica para numero de particulas e calculando espectro de galaxias
 """
-N_r = np.random.poisson(N_bar*(1.+delta_xr))
-delta_gg_r = (N_r - N_bar)/N_bar
+N_r = np.random.poisson(n_bar*(1.+delta_xr))
+delta_gg_r = (N_r - np.mean(N_r))/np.mean(N_r)
 delta_gg_k = (volume/(N_x*N_y*N_y))*np.fft.fftn(delta_gg_r)
 
 P_gg = np.einsum("aijl,ijl,ijl->a", M, delta_gg_k, np.conj(delta_gg_k))/(np.einsum("aijl->a", M)*volume)
@@ -159,13 +161,19 @@ P_gg = np.einsum("aijl,ijl,ijl->a", M, delta_gg_k, np.conj(delta_gg_k))/(np.eins
 #print "Parte real: " + str(delta_xr[1,2,3])  + " e parte imaginaria: " + str(delta_xi[1,2,3])
 #########################################################################
 
-def fit_params(x,a,b):
-    return np.power(a,2.)*x + np.power(b,-1.) 
-params = curve_fit(fit_params, Pk(k_bar[1:]), P_gg.real)
-[a,b] = params[0]
-print a
-print b
-sys.exit(-1)
+def f(x,a,b):
+    return np.power(a,2.)*x + b
+#params = curve_fit(fit_params, Pk(k_bar[1:]), P_gg.real, p0=[1.,1/n_bar])
+params = curve_fit(f, P_gg.real, P_a2.real, p0=[1., -dV/n_bar])
+[bias_est, s_n_est] = params[0]
+print "Bias => " + str(bias_est)
+print "Shot-noise => " + str(s_n_est)
+perr = np.sqrt(np.diag(params[1]))
+print perr
+#Pgg_params = (bias_est**2.)*Pk(k_bar[1:])+s_n_est                                    #espectro de galaxias com os parametros estimados
+#Pgg_params = (bias_est**2.)*P_gg.real+s_n_est
+
+#sys.exit(-1)
 print "################################################################"
 print "                           DADOS                                "
 print "################################################################"
@@ -188,13 +196,14 @@ pl.colorbar()								            #plota a matriz dos k's
 
 pl.figure("P(k)")							                            #plotando o espectro original
 pl.grid(1)
-pl.loglog()
-#pl.yscale("log")
+#pl.loglog()
+pl.yscale("log")
 pl.xlabel("k")
 pl.ylabel('P(k)')
 pl.plot(k_r[1:], P_k[1:], label="CAMB")						            #DADOS
 pl.plot(k_bar[1:],P_a2, color="k", label="Estimado")				#ESTIMADO
-pl.plot(k_bar[1:],P_gg,"*", label="Espectro de galaxias")
+pl.plot(k_bar[1:],P_gg.real,"*", label="Espectro de galaxias")
+pl.plot(k_bar[1:], (P_gg.real/(bias**2.) - dV/n_bar), "^", label="$P_g/b^2 - dV/n$")
 legend = pl.legend(loc=0, shadow=True)
 frame = legend.get_frame()
 frame.set_facecolor('0.90')
